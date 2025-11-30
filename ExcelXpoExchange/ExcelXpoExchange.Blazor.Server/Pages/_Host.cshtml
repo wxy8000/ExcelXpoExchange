@@ -1,0 +1,59 @@
+﻿@page "/"
+@namespace ExcelXpoExchange.Blazor.Server
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@using DevExpress.ExpressApp.Blazor.Components
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- meta name="theme-color" content="#000000" -->
+    <title>ExcelXpoExchange</title>
+    <base href="~/" />
+    <component type="typeof(BootstrapThemeLink)" render-mode="Static" />
+</head>
+<body>
+    <component type="typeof(SplashScreen)" render-mode="Static" param-Caption='"ExcelXpoExchange"' param-ImagePath='"images/SplashScreen.svg"' />
+
+    <link href="_content/DevExpress.ExpressApp.Blazor/styles.css" asp-append-version="true" rel="stylesheet" />
+    <link href="css/site.css" rel="stylesheet" />
+    <!-- Uncomment this link to enable CSS isolation. For more information, refer to the following topic: https://learn.microsoft.com/en-us/aspnet/core/blazor/components/css-isolation -->
+    <!-- <link href="ExcelXpoExchange.Blazor.Server.styles.css" rel="stylesheet"> -->
+
+    <app class="d-none">
+        <component type="typeof(App)" render-mode="Server" />
+    </app>
+
+    <component type="typeof(AlertsHandler)" render-mode="Server" />
+
+    <div id="blazor-error-ui">
+        <component type="typeof(BlazorError)" render-mode="Static" />
+    </div>
+
+    <script src="_framework/blazor.server.js"></script>
+    <script>
+        // 下载文件函数，用于Blazor导出功能
+        function downloadFile(fileName, bytes) {
+            // 将字节数组转换为Blob对象
+            const blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = fileName;
+            
+            // 触发点击事件，自动打开浏览器的另存为对话框
+            document.body.appendChild(link);
+            link.click();
+            
+            // 清理临时资源
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

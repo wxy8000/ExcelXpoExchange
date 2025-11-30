@@ -1,0 +1,493 @@
+﻿@page "/import-excel-dialog"
+@using System.Reflection
+@using System.Web
+@using DevExpress.ExpressApp
+@using XpoExcelImportExport
+using DevExpress.ExpressApp
+using DevExpress.ExpressApp.Blazor.Services
+using XpoExcelImportExport
+@inject IObjectSpaceFactory ObjectSpaceFactory
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject IServiceProvider ServiceProvider
+@inject DevExpress.ExpressApp.Blazor.Services.IXafApplicationProvider XafApplicationProvider
+
+<style>
+    /* 模态对话框样式 */
+    .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.5);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1040;
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        outline: 0;
+    }
+
+    .modal-dialog {
+        position: relative;
+        width: auto;
+        max-width: 500px;
+        margin: 1.75rem auto;
+        pointer-events: none;
+    }
+
+    .modal-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        pointer-events: auto;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0, 0, 0, 0.2);
+        border-radius: 0.5rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        outline: 0;
+    }
+
+    .modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        border-bottom: 1px solid #dee2e6;
+        border-top-left-radius: calc(0.5rem - 1px);
+        border-top-right-radius: calc(0.5rem - 1px);
+    }
+
+    .modal-title {
+        margin-bottom: 0;
+        line-height: 1.5;
+        font-size: 1.25rem;
+        font-weight: 500;
+    }
+
+    .btn-close {
+        box-sizing: content-box;
+        width: 1em;
+        height: 1em;
+        padding: 0.25em 0.25em;
+        color: #000;
+        background: transparent url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23000'%3e%3cpath d='M.293.293a1 1 0 0 1 1.414 0L8 6.586 14.293.293a1 1 0 1 1 1.414 1.414L9.414 8l6.293 6.293a1 1 0 0 1-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 0 1-1.414-1.414L6.586 8 .293 1.707a1 1 0 0 1 0-1.414z'/%3e%3c/svg%3e") center/1em auto no-repeat;
+        border: 0;
+        border-radius: 0.25rem;
+        opacity: 0.5;
+    }
+
+    .btn-close:hover {
+        color: #000;
+        text-decoration: none;
+        opacity: 0.75;
+    }
+
+    .modal-body {
+        position: relative;
+        flex: 1 1 auto;
+        padding: 1rem;
+    }
+
+    .modal-footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        padding: 1rem;
+        border-top: 1px solid #dee2e6;
+        border-bottom-left-radius: calc(0.5rem - 1px);
+        border-bottom-right-radius: calc(0.5rem - 1px);
+        gap: 0.5rem;
+    }
+
+    /* 文件选择美化 */
+    .file-input-wrapper {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+    }
+
+    .file-input-custom {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.375rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .file-input-custom:hover {
+        cursor: pointer;
+        background-color: #f8f9fa;
+    }
+
+    .file-input {
+        position: absolute;
+        left: 0;
+        top: 0;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    /* 导入模式radio样式 */
+    .radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .radio-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border: 1px solid #e9ecef;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
+    }
+
+    .radio-item:hover {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+
+    .radio-item input[type="radio"] {
+        accent-color: #0d6efd;
+    }
+
+    .radio-item label {
+        margin: 0;
+        cursor: pointer;
+    }
+
+    /* 导入结果样式 */
+    .result-container {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 0.375rem;
+    }
+
+    .result-success {
+        background-color: #d1fae5;
+        border: 1px solid #a7f3d0;
+        color: #065f46;
+    }
+
+    .result-error {
+        background-color: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+</style>
+
+<!-- 模态对话框内容 -->
+<div class="modal-backdrop"></div>
+<div class="modal" tabindex="-1" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">从Excel导入数据</h5>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="Cancel"></button>
+            </div>
+            <div class="modal-body">
+                <!-- 文件选择 -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">选择Excel文件</label>
+                    <div class="file-input-wrapper">
+                        <div class="file-input-custom">
+                            @(selectedFile != null ? selectedFile.Name : "点击选择文件")
+                        </div>
+                        <InputFile id="excelFile" OnChange="OnFileSelected" accept=".xlsx" class="file-input" />
+                    </div>
+                    <div class="text-muted text-sm mt-1">
+                        支持 .xlsx 格式，最大 10MB
+                    </div>
+                </div>
+
+                <!-- 导入模式 -->
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">导入模式</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="mode-create" name="importMode" checked="@(selectedImportMode == "CreateOnly")" @onchange="HandleCreateOnlyChange" />
+                            <label for="mode-create">仅创建新数据</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="mode-update" name="importMode" checked="@(selectedImportMode == "UpdateOnly")" @onchange="HandleUpdateOnlyChange" />
+                            <label for="mode-update">仅更新已存在的数据</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="mode-create-update" name="importMode" checked="@(selectedImportMode == "CreateOrUpdate")" @onchange="HandleCreateOrUpdateChange" />
+                            <label for="mode-create-update">创建或更新数据</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="mode-replace" name="importMode" checked="@(selectedImportMode == "Replace")" @onchange="HandleReplaceChange" />
+                            <label for="mode-replace">替换所有数据</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 跳过重复数据 -->
+                <div class="mb-4">
+                    <div class="form-check">
+                        <input type="checkbox" id="skipDuplicate" @bind="skipDuplicate" class="form-check-input" />
+                        <label class="form-check-label" for="skipDuplicate">跳过重复数据</label>
+                    </div>
+                </div>
+
+                <!-- 导入结果 -->
+                @if (!string.IsNullOrEmpty(importResult))
+                {
+                    <div class="result-container @(isSuccess ? "result-success" : "result-error")">
+                        @importResult
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @onclick="Cancel">取消</button>
+                <button type="button" class="btn btn-primary" disabled="@isImporting" @onclick="ImportData">
+                    @if (isImporting)
+                    {
+                        <span class="d-flex align-items-center gap-2">
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            导入中...
+                        </span>
+                    }
+                    else
+                    {
+                        <span>导入数据</span>
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+@code {
+    private IBrowserFile selectedFile;
+    private bool isImporting;
+    private string importResult;
+    private bool isSuccess;
+    private string selectedImportMode = "CreateOrUpdate";
+    private bool skipDuplicate = true;
+    private Type objectType;
+    private string objectTypeName;
+    private string listViewId;
+
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+
+        // 解析URL参数
+        var uri = new Uri(NavigationManager.Uri);
+        var query = HttpUtility.ParseQueryString(uri.Query);
+        objectTypeName = query["objectType"];
+
+        if (!string.IsNullOrEmpty(objectTypeName))
+        {
+            // 根据类型名称获取Type对象
+            // 遍历所有加载的程序集，查找匹配的类型
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                objectType = assembly.GetType(objectTypeName);
+                if (objectType != null)
+                {
+                    break;
+                }
+            }
+
+            if (objectType == null)
+            {
+                // 如果找不到类型，尝试使用当前程序集的命名空间作为前缀
+                var currentAssembly = typeof(ImportExcelDialog).Assembly;
+                var simpleTypeName = objectTypeName.Split('.').Last();
+                objectType = currentAssembly.GetType($"{currentAssembly.GetName().Name}.BusinessObjects.{simpleTypeName}");
+            }
+
+            // 生成ListViewId
+            if (objectType != null)
+            {
+                listViewId = $"{objectType.Name}_ListView";
+            }
+            else
+            {
+                // 如果找不到类型，显示错误信息
+                importResult = $"无法找到类型：{objectTypeName}";
+                isSuccess = false;
+            }
+        }
+        else
+        {
+            // 如果没有传递objectType参数，显示错误信息
+            importResult = "未指定要导入的对象类型";
+            isSuccess = false;
+        }
+    }
+
+    private void HandleCreateOnlyChange()
+    {
+        selectedImportMode = "CreateOnly";
+    }
+
+    private void HandleUpdateOnlyChange()
+    {
+        selectedImportMode = "UpdateOnly";
+    }
+
+    private void HandleCreateOrUpdateChange()
+    {
+        selectedImportMode = "CreateOrUpdate";
+    }
+
+    private void HandleReplaceChange()
+    {
+        selectedImportMode = "Replace";
+    }
+
+    private void OnFileSelected(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+    }
+
+    private async Task ImportData()
+    {
+        if (selectedFile == null)
+        {
+            importResult = "请先选择Excel文件";
+            isSuccess = false;
+            return;
+        }
+
+        if (objectType == null)
+        {
+            importResult = "无法获取对象类型";
+            isSuccess = false;
+            return;
+        }
+
+        isImporting = true;
+        importResult = string.Empty;
+
+        try
+        {
+            // 1. 先将异步流转换为字节数组
+            using var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            using var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream);
+            memoryStream.Position = 0;
+
+            // 2. 使用Task.Run将导入操作放在后台线程执行
+            await Task.Run(() =>
+            {
+                // 获取应用程序实例
+                var application = XafApplicationProvider.GetApplication();
+                if (application == null)
+                {
+                    importResult = "无法获取应用程序实例";
+                    isSuccess = false;
+                    return;
+                }
+
+                // 创建XpoExcelHelper实例
+                var platformService = ServiceProvider.GetService<IPlatformService>();
+                var excelHelper = new XpoExcelHelper(application, platformService);
+
+                // 保存文件到临时位置
+                string tempFilePath = Path.GetTempFileName() + ".xlsx";
+                using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write))
+                {
+                    memoryStream.Position = 0;
+                    memoryStream.CopyTo(tempFileStream);
+                }
+
+                try
+                {
+                    // 执行导入
+                    var importOptions = new XpoExcelImportOptions
+                    {
+                        Mode = selectedImportMode switch
+                        {
+                            "CreateOnly" => ImportMode.CreateOnly,
+                            "UpdateOnly" => ImportMode.UpdateOnly,
+                            "CreateOrUpdate" => ImportMode.CreateAndUpdate,
+                            "Replace" => ImportMode.DeleteAndUpdate,
+                            _ => ImportMode.CreateAndUpdate
+                        },
+                        StopOnError = false
+                    };
+
+                    // 使用反射调用泛型方法
+                    var importMethod = typeof(XpoExcelHelper).GetMethod("ImportFromExcel", new[] { typeof(string), typeof(XpoExcelImportOptions) });
+                    if (importMethod == null)
+                    {
+                        importResult = "无法找到ImportFromExcel方法";
+                        isSuccess = false;
+                        return;
+                    }
+
+                    var genericImportMethod = importMethod.MakeGenericMethod(objectType);
+                    var result = (ImportResult)genericImportMethod.Invoke(excelHelper, new object[] { tempFilePath, importOptions });
+
+                    // 处理导入结果
+                    importResult = result.HasErrors
+                        ? $"导入失败，成功{result.SuccessCount}条，失败{result.FailureCount}条，错误信息：{string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage))}"
+                        : $"导入成功，共{result.SuccessCount}条记录";
+                    isSuccess = !result.HasErrors;
+                }
+                finally
+                {
+                    // 删除临时文件
+                    if (File.Exists(tempFilePath))
+                    {
+                        File.Delete(tempFilePath);
+                    }
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            importResult = $"导入失败：{ex.Message}{Environment.NewLine}{ex.StackTrace}";
+            isSuccess = false;
+        }
+        finally
+        {
+            isImporting = false;
+
+            // 导入完成后，等待2秒让用户看到结果，然后自动返回列表视图
+            if (isSuccess)
+            {
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo($"/{listViewId}");
+            }
+        }
+    }
+
+    private void Cancel()
+    {
+        NavigationManager.NavigateTo($"/{listViewId}");
+    }
+}
