@@ -30,6 +30,7 @@ namespace ExcelXpoExchange.Win
                     options.AllowValidationDetailsAccess = false;
                 })
                 .Add<ExcelXpoExchange.Module.ExcelXpoExchangeModule>()
+                .Add<WxyXpoExcel.WxyXpoExcelModule>()
                 .Add<ExcelXpoExchangeWinModule>();
             builder.ObjectSpaceProviders
                 .AddXpo((application, options) =>
@@ -40,11 +41,13 @@ namespace ExcelXpoExchange.Win
             builder.AddBuildStep(application =>
             {
                 application.ConnectionString = connectionString;
-#if DEBUG
-                if(System.Diagnostics.Debugger.IsAttached && application.CheckCompatibilityType == CheckCompatibilityType.DatabaseSchema) {
-                    application.DatabaseUpdateMode = DatabaseUpdateMode.UpdateDatabaseAlways;
-                }
-#endif
+                
+                // 确保在所有情况下都能正确更新数据库
+                // 设置为UpdateDatabaseAlways以自动更新数据库架构
+                application.DatabaseUpdateMode = DatabaseUpdateMode.UpdateDatabaseAlways;
+                
+                // 推荐使用ModuleInfo来检查兼容性，这是DevExpress推荐的方式
+                application.CheckCompatibilityType = CheckCompatibilityType.ModuleInfo;
             });
             var winApplication = builder.Build();
             return winApplication;

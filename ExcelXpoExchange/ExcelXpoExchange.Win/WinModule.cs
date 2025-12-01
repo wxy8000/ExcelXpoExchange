@@ -18,6 +18,8 @@ namespace ExcelXpoExchange.Win
         public ExcelXpoExchangeWinModule()
         {
             DevExpress.ExpressApp.Editors.FormattingProvider.UseMaskSettings = true;
+            // 显式注册WinForms平台特定的控制器
+            AdditionalControllerTypes.Add(typeof(Controllers.WinExcelImportExportViewController));
         }
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)
         {

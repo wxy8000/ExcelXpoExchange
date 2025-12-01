@@ -27,7 +27,8 @@ namespace ExcelXpoExchange.Module
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Objects.BusinessClassLibraryCustomizationModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.ConditionalAppearance.ConditionalAppearanceModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Validation.ValidationModule));
-            RequiredModuleTypes.Add(typeof(XpoExcelImportExport.XpoExcelImportExportModule));
+            RequiredModuleTypes.Add(typeof(WxyXpoExcel.WxyXpoExcelModule));
+            RequiredModuleTypes.Add(typeof(WxyXaf.DataDictionaries.DataDictionariesModule));
         }
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)
         {

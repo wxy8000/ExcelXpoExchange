@@ -11,16 +11,18 @@ using DevExpress.ExpressApp.Xpo;
 using DevExpress.Persistent.Base;
 using DevExpress.Xpo;
 
-namespace XpoExcelImportExport
+namespace WxyXpoExcel
 {
     /// <summary>
-    /// XpoExcelImportExport模块，用于自动注册带有ExcelImportExportAttribute标记的XPO类的导入导出功能
+    /// WxyXpoExcel模块，用于自动注册带有ExcelImportExportAttribute标记的XPO类的导入导出功能
     /// </summary>
-    public sealed class XpoExcelImportExportModule : ModuleBase
+    public sealed class WxyXpoExcelModule : ModuleBase
     {
-        public XpoExcelImportExportModule()
+        public WxyXpoExcelModule()
         {
             RequiredModuleTypes.Add(typeof(SystemModule));
+            // 显式注册控制器，确保它们被自动发现
+            AdditionalControllerTypes.Add(typeof(ExcelImportExportViewController));
         }
 
         /// <summary>

@@ -23,12 +23,15 @@
     <PackageReference Include="DevExpress.ExpressApp.Xpo" Version="25.1.*" />
     <PackageReference Include="DevExpress.Persistent.Base" Version="25.1.*" />
     <PackageReference Include="DevExpress.Persistent.BaseImpl.Xpo" Version="25.1.*" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.118.0" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.14.0" />
     
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\XpoExcelImportExport\XpoExcelImportExport.csproj" />
+    <ProjectReference Include="..\Wxy.Common\Wxy.Common.csproj" />
+    <ProjectReference Include="..\WxyXaf.DataDictionaries\WxyXaf.DataDictionaries.csproj" />
+    <ProjectReference Include="..\WxyXpoExcel\WxyXpoExcel.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="BusinessObjects\" />

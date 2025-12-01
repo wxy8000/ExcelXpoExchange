@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
-namespace XpoExcelImportExport
+namespace WxyXpoExcel
 {
     /// <summary>
     /// 平台服务接口，定义各平台特有的操作

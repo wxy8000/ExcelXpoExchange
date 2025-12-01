@@ -4,9 +4,9 @@ using System.Windows.Forms;
 using DevExpress.Data.Filtering;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Actions;
-using XpoExcelImportExport;
+using WxyXpoExcel;
 
-namespace YourWinFormsProject.Controllers
+namespace ExcelXpoExchange.Win.Controllers
 {
     /// <summary>
     /// WinForms版通用Excel导入导出控制器
@@ -40,8 +40,9 @@ namespace YourWinFormsProject.Controllers
                             {
                                 ImportMode importMode = dialog.SelectedMode;
 
-                                // 创建XpoExcelHelper实例
-                                var excelHelper = new XpoExcelHelper(Application, null);
+                                // 创建XpoExcelHelper实例，并注册DataDictionaryItemConverter
+                            var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
+                            var excelHelper = new XpoExcelHelper(Application, null, new[] { dataDictionaryItemConverter });
 
                                 // 执行导入
                                 var importOptions = new XpoExcelImportOptions

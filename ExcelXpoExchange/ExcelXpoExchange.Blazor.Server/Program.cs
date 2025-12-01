@@ -13,6 +13,73 @@ namespace ExcelXpoExchange.Blazor.Server
         {
             return args.Any(arg => arg.TrimStart('/').TrimStart('-').ToLower() == argument.ToLower());
         }
+        
+        /// <summary>
+        /// 检查数据库兼容性，如果不兼容则删除旧数据库
+        /// </summary>
+        /// <param name="connectionString">数据库连接字符串</param>
+        static void CheckAndDeleteIncompatibleDatabase(string connectionString)
+        {
+            try
+            {
+                // 提取SQLite数据库文件路径
+                if (connectionString.Contains("XpoProvider=SQLite"))
+                {
+                    // 解析连接字符串，获取Data Source参数
+                    var dataSourceParam = connectionString.Split(';')
+                        .FirstOrDefault(p => p.Trim().StartsWith("Data Source", StringComparison.OrdinalIgnoreCase));
+                    
+                    if (dataSourceParam != null)
+                    {
+                        var dbFilePath = dataSourceParam.Split('=')[1].Trim();
+                        
+                        // 检查数据库文件是否存在
+                        if (File.Exists(dbFilePath))
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 检查数据库兼容性: {dbFilePath}");
+                            
+                            // 尝试打开数据库并检查兼容性
+                            try
+                            {
+                                using (var connection = new System.Data.SQLite.SQLiteConnection($"Data Source={dbFilePath}"))
+                                {
+                                    connection.Open();
+                                    
+                                    // 检查数据库版本表是否存在
+                                    using (var command = new System.Data.SQLite.SQLiteCommand(
+                                        "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='XPObjectType'", 
+                                        connection))
+                                    {
+                                        var count = Convert.ToInt32(command.ExecuteScalar());
+                                        if (count == 0)
+                                        {
+                                            // 数据库结构不兼容，删除旧数据库
+                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 数据库结构不兼容，删除旧数据库: {dbFilePath}");
+                                            connection.Close();
+                                            File.Delete(dbFilePath);
+                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 旧数据库已删除");
+                                        }
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // 连接失败，数据库可能损坏或不兼容，删除旧数据库
+                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 数据库连接失败，删除旧数据库: {dbFilePath}, 错误: {ex.Message}");
+                                File.Delete(dbFilePath);
+                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 旧数据库已删除");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 检查数据库兼容性时发生错误: {ex.Message}");
+                // 忽略错误，继续启动应用程序
+            }
+        }
+        
         public static int Main(string[] args)
         {
             if (ContainsArgument(args, "help") || ContainsArgument(args, "h"))

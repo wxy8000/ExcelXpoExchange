@@ -25,6 +25,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExcelXpoExchange.Module\ExcelXpoExchange.Module.csproj" />
-    <ProjectReference Include="..\XpoExcelImportExport\XpoExcelImportExport.csproj" />
+    <ProjectReference Include="..\WxyXpoExcel\WxyXpoExcel.csproj" />
   </ItemGroup>
 </Project>

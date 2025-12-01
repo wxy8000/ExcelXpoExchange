@@ -11,12 +11,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
-using XpoExcelImportExport;
+using WxyXaf.DataDictionaries;
+using WxyXpoExcel;
 
-namespace demo2excel.Module.BusinessObjects
+namespace ExcelXpoExchange.Module.BusinessObjects
 {
     [DefaultClassOptions]
-    [ExcelImportExport]
+    [ExcelImportExport()]
     //[ImageName("BO_Contact")]
     //[DefaultProperty("DisplayMemberNameForLookupEditorsOfThisType")]
     //[DefaultListViewOptions(MasterDetailMode.ListViewOnly, false, NewItemRowPosition.None)]
@@ -43,6 +44,7 @@ namespace demo2excel.Module.BusinessObjects
         [VisibleInDetailView(true)]
         [VisibleInListView(true)]
         [VisibleInLookupListView(true)]
+
         public string EmployeeId
         {
             get => fEmployeeId;
@@ -113,12 +115,29 @@ namespace demo2excel.Module.BusinessObjects
         [ExcelField(Caption = "部门", Order = 5)]
         [VisibleInDetailView(true)]
         [VisibleInListView(true)]
-        public string Department
+        [DataDictionary("部门")]
+        public DataDictionaryItem Department
         {
             get => fDepartment;
             set => SetPropertyValue(nameof(Department), ref fDepartment, value);
         }
-        string fDepartment;
+        DataDictionaryItem fDepartment;
+
+
+        /// <summary>
+        /// 职位
+        /// </summary>
+        [Size(100)]
+        [ExcelField(Caption = "职位", Order = 5)]
+        [VisibleInDetailView(true)]
+        [VisibleInListView(true)]
+        [DataDictionary("职位")]
+        public DataDictionaryItem ZhiWei
+        {
+            get => fZhiWei;
+            set => SetPropertyValue(nameof(ZhiWei), ref fZhiWei, value);
+        }
+        DataDictionaryItem fZhiWei;
 
         /// <summary>
         /// 入职日期

@@ -8,7 +8,7 @@ using DevExpress.Persistent.Base;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
-using XpoExcelImportExport;
+using WxyXpoExcel;
 
 namespace YourBlazorProject.Controllers
 {

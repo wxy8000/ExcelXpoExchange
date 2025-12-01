@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>1.0.0</Version>
+		<!-- NuGet包配置 -->
+		<PackageId>EasyXaf.DataDictionaries</PackageId>
+		<Authors>Your Name</Authors>
+		<Company>Your Company</Company>
+		<Description>EasyXaf Data Dictionaries Module - 提供数据字典管理功能</Description>
+		<Copyright>Copyright © 2025</Copyright>
+		<PackageTags>XAF EasyXaf DataDictionaries</PackageTags>
+		<PackageProjectUrl>https://github.com/yourusername/EasyXaf.DataDictionaries</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/yourusername/EasyXaf.DataDictionaries</RepositoryUrl>
+		<RepositoryType>Git</RepositoryType>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageOutputPath>../../nupkg</PackageOutputPath>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="DevExpress.Persistent.BaseImpl.Xpo" Version="24.1.*" />
+	</ItemGroup>
+
+</Project>

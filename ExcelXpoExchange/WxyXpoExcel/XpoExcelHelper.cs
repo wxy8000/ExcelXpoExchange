@@ -11,14 +11,19 @@ using DevExpress.ExpressApp.Model;
 using DevExpress.ExpressApp.SystemModule;
 using DevExpress.ExpressApp.Xpo;
 using DevExpress.Persistent.Base;
+using static DevExpress.Persistent.Base.Tracing;
 using DevExpress.Xpo;
 using DevExpress.Xpo.Metadata;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
 
-namespace XpoExcelImportExport
+
+using Wxy.Common;
+
+namespace WxyXpoExcel
 {
+    
     /// <summary>
     /// 标记XPO类支持Excel导入导出功能的装饰器
     /// </summary>
@@ -56,17 +61,60 @@ namespace XpoExcelImportExport
         /// 列顺序
         /// </summary>
         public int Order { get; set; } = 0;
+        
+        /// <summary>
+        /// 导入时是否要求值唯一
+        /// </summary>
+        public bool IsUnique { get; set; } = false;
     }
     
     public class XpoExcelHelper
     {
         private readonly XafApplication _application;
         private readonly IPlatformService _platformService;
+        private readonly List<IRelatedObjectConverter> _relatedObjectConverters;
         
         public XpoExcelHelper(XafApplication application, IPlatformService platformService)
+            : this(application, platformService, Enumerable.Empty<IRelatedObjectConverter>())
+        {
+        }
+        
+        public XpoExcelHelper(XafApplication application, IPlatformService platformService, IEnumerable<IRelatedObjectConverter> relatedObjectConverters)
         {
             _application = application;
             _platformService = platformService;
+            _relatedObjectConverters = new List<IRelatedObjectConverter>();
+            
+            // 注册所有提供的关联对象转换器
+            if (relatedObjectConverters != null)
+            {
+                foreach (var converter in relatedObjectConverters)
+                {
+                    RegisterRelatedObjectConverter(converter);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 注册关联对象转换器
+        /// </summary>
+        /// <param name="converter">转换器实例</param>
+        public void RegisterRelatedObjectConverter(IRelatedObjectConverter converter)
+        {
+            if (converter != null && !_relatedObjectConverters.Contains(converter))
+            {
+                _relatedObjectConverters.Add(converter);
+            }
+        }
+        
+        /// <summary>
+        /// 获取适合指定类型的关联对象转换器
+        /// </summary>
+        /// <param name="objectType">要转换的对象类型</param>
+        /// <returns>适合的转换器，如果没有则返回null</returns>
+        private IRelatedObjectConverter GetRelatedObjectConverter(Type objectType)
+        {
+            return _relatedObjectConverters.FirstOrDefault(converter => converter.CanConvert(objectType));
         }
         
         /// <summary>
@@ -304,54 +352,54 @@ namespace XpoExcelImportExport
         /// <returns>导入结果</returns>
         public ImportResult ImportFromExcel<T>(string filePath, XpoExcelImportOptions options = null) where T : XPBaseObject
         {
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 开始导入文件: {filePath}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 开始导入文件: {filePath}");
             
             try
             {
                 // 检查文件是否存在
                 if (!File.Exists(filePath))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 文件不存在: {filePath}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 文件不存在: {filePath}");
                     return new ImportResult { Errors = { new ImportError { ErrorMessage = $"文件不存在: {filePath}" } } };
                 }
                 
                 IWorkbook workbook;
                 using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 文件流已打开");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 文件流已打开");
                     
                     // 根据文件扩展名创建对应的工作簿
                     if (Path.GetExtension(filePath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 创建XSSF工作簿");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 创建XSSF工作簿");
                         workbook = new XSSFWorkbook(fileStream);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 创建HSSF工作簿");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 创建HSSF工作簿");
                         workbook = new HSSFWorkbook(fileStream);
                     }
                 }
                 
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 工作簿创建完成，工作表数量: {workbook.NumberOfSheets}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 工作簿创建完成，工作表数量: {workbook.NumberOfSheets}");
                 
                 if (workbook.NumberOfSheets <= 0)
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 工作簿中没有工作表");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 工作簿中没有工作表");
                     return new ImportResult { Errors = { new ImportError { ErrorMessage = "Excel文件中没有工作表" } } };
                 }
                 
                 var worksheet = workbook.GetSheetAt(0);
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 获取第一个工作表: {worksheet.SheetName}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 获取第一个工作表: {worksheet.SheetName}");
                 
                 var result = ImportFromWorksheet<T>(worksheet, options);
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
                 
                 return result;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 导入失败: {ex.Message}\n{ex.StackTrace}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 导入失败: {ex.Message}\n{ex.StackTrace}");
                 return new ImportResult { Errors = { new ImportError { ErrorMessage = $"导入失败: {ex.Message}" } } };
             }
         }
@@ -410,7 +458,7 @@ namespace XpoExcelImportExport
             options = options ?? new XpoExcelImportOptions();
             var result = new ImportResult();
             
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始导入类型: {typeof(T).Name}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始导入类型: {typeof(T).Name}");
             
             try
             {
@@ -418,18 +466,18 @@ namespace XpoExcelImportExport
                 {
                     if (objectSpace == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法创建对象空间");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法创建对象空间");
                         result.Errors.Add(new ImportError { ErrorMessage = "无法创建对象空间" });
                         return result;
                     }
                     
                     var typeInfo = _application.Model.BOModel.GetClass(typeof(T));
                     
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 获取类型信息: {typeInfo?.Name ?? "null"}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 获取类型信息: {typeInfo?.Name ?? "null"}");
                     
                     if (typeInfo == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法获取类型信息");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法获取类型信息");
                         result.Errors.Add(new ImportError { ErrorMessage = "无法获取类型信息" });
                         return result;
                     }
@@ -438,12 +486,12 @@ namespace XpoExcelImportExport
                     var headerRow = worksheet.GetRow(0);
                     if (headerRow == null)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头为空");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头为空");
                         result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头为空" });
                         return result;
                     }
                     
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {headerRow.LastCellNum}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {headerRow.LastCellNum}");
                     
                     var fieldMappings = new Dictionary<int, IModelMember>();
                     for (int c = 0; c < headerRow.LastCellNum; c++)
@@ -452,37 +500,37 @@ namespace XpoExcelImportExport
                         if (cell != null)
                         {
                             var fieldCaption = cell.StringCellValue;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理表头单元格 {c}: {fieldCaption}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理表头单元格 {c}: {fieldCaption}");
                             
                             var member = typeInfo.AllMembers.SingleOrDefault(x => x.Caption == fieldCaption);
                             if (member != null)
                             {
                                 fieldMappings.Add(c, member);
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段映射: {fieldCaption} -> {member.Name}");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段映射: {fieldCaption} -> {member.Name}");
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到字段映射: {fieldCaption}");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到字段映射: {fieldCaption}");
                             }
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头单元格 {c} 为空");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头单元格 {c} 为空");
                         }
                     }
                     
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段映射完成，共 {fieldMappings.Count} 个字段");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段映射完成，共 {fieldMappings.Count} 个字段");
                     
                     // 如果没有找到任何字段映射，返回错误
                     if (fieldMappings.Count == 0)
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有找到任何字段映射");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有找到任何字段映射");
                         result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头与对象字段不匹配，请检查列标题是否正确" });
                         return result;
                     }
                     
                     // 读取数据行
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据行范围: 1 - {worksheet.LastRowNum}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据行范围: 1 - {worksheet.LastRowNum}");
                     
                     int processedRowCount = 0;
                     for (int r = 1; r <= worksheet.LastRowNum; r++)
@@ -490,12 +538,12 @@ namespace XpoExcelImportExport
                         var dataRow = worksheet.GetRow(r);
                         if (dataRow == null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行为空，跳过");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行为空，跳过");
                             continue;
                         }
                         
                         processedRowCount++;
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理第 {r} 行数据，单元格数: {dataRow.LastCellNum}");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理第 {r} 行数据，单元格数: {dataRow.LastCellNum}");
                         
                         T obj = null;
                         bool isNewObject = false;
@@ -507,7 +555,7 @@ namespace XpoExcelImportExport
                                 // 仅新建
                                 obj = objectSpace.CreateObject<T>();
                                 isNewObject = true;
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新对象(仅新建模式)");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新对象(仅新建模式)");
                                 break;
                                 
                             case ImportMode.UpdateOnly:
@@ -515,11 +563,11 @@ namespace XpoExcelImportExport
                                 obj = FindExistingObject<T>(worksheet, r, fieldMappings, objectSpace, options);
                                 if (obj == null)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到现有对象，跳过更新");
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到现有对象，跳过更新");
                                     result.FailureCount++;
                                     continue;
                                 }
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 找到现有对象进行更新");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 找到现有对象进行更新");
                                 break;
                                 
                             case ImportMode.CreateAndUpdate:
@@ -527,7 +575,7 @@ namespace XpoExcelImportExport
                                 obj = FindExistingObject<T>(worksheet, r, fieldMappings, objectSpace, options) ?? 
                                       objectSpace.CreateObject<T>();
                                 isNewObject = (obj != null && objectSpace.IsNewObject(obj));
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet {(isNewObject ? "创建新对象" : "更新现有对象")}(新建和更新模式)");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet {(isNewObject ? "创建新对象" : "更新现有对象")}(新建和更新模式)");
                                 break;
                                 
                             case ImportMode.DeleteAndUpdate:
@@ -537,18 +585,18 @@ namespace XpoExcelImportExport
                                 {
                                     // 删除现有对象
                                     objectSpace.Delete(existingObj);
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有对象");
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有对象");
                                 }
                                 // 创建新对象
                                 obj = objectSpace.CreateObject<T>();
                                 isNewObject = true;
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除后创建新对象");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除后创建新对象");
                                 break;
                         }
                         
                         if (obj == null)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 对象创建失败");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 对象创建失败");
                             result.FailureCount++;
                             result.Errors.Add(new ImportError
                             {
@@ -573,14 +621,46 @@ namespace XpoExcelImportExport
                             {
                                 try
                                 {
-                                    var value = ConvertCellValue(cell, member);
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值: {member.Name} = {value?.ToString() ?? "null"}");
+                                    var value = ConvertCellValue(cell, member, objectSpace);
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值: {member.Name} = {value?.ToString() ?? "null"}");
+                                    
+                                    // 检查字段是否要求唯一
+                                    var propertyInfo = member.MemberInfo.MemberTypeInfo.Type.GetProperty(member.Name);
+                                    var fieldAttribute = propertyInfo?.GetCustomAttribute<ExcelFieldAttribute>();
+                                    if (fieldAttribute != null && fieldAttribute.IsUnique)
+                                    {
+                                        // 构建唯一性查询条件
+                                        CriteriaOperator criteria = new BinaryOperator(member.Name, value);
+                                        // 如果是更新模式，排除当前对象
+                                        if (options.Mode == ImportMode.UpdateOnly || options.Mode == ImportMode.CreateAndUpdate)
+                                        {
+                                            // 获取对象的主键信息（使用XPO ClassInfo）
+                                            var classInfo = objectSpace.Session.GetClassInfo(obj.GetType());
+                                            var keyProperty = classInfo.KeyProperty;
+                                            if (keyProperty != null)
+                                            {
+                                                var keyValue = obj.GetMemberValue(keyProperty.Name);
+                                                criteria = GroupOperator.And(
+                                                    criteria,
+                                                    new BinaryOperator(keyProperty.Name, keyValue, BinaryOperatorType.NotEqual)
+                                                );
+                                            }
+                                        }
+                                        
+                                        // 检查是否已存在相同值
+                                        var existingObject = objectSpace.FindObject(obj.GetType(), criteria);
+                                        if (existingObject != null)
+                                        {
+                                            throw new InvalidOperationException($"字段 '{member.Name}' 的值 '{value}' 已存在，要求唯一");
+                                        }
+                                    }
+                                    
                                     obj.SetMemberValue(member.Name, value);
                                     filledFieldCount++;
                                 }
                                 catch (Exception ex)
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值失败: {member.Name}, 错误: {ex.Message}");
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值失败: {member.Name}, 错误: {ex.Message}");
                                     result.Errors.Add(new ImportError
                                     {
                                         RowIndex = r,
@@ -592,43 +672,43 @@ namespace XpoExcelImportExport
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 单元格 {columnIndex} 为空，跳过字段: {member.Name}");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 单元格 {columnIndex} 为空，跳过字段: {member.Name}");
                             }
                         }
                         
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行填充了 {filledFieldCount} 个字段");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行填充了 {filledFieldCount} 个字段");
                         
                         if (!rowHasError)
                         {
                             result.SuccessCount++;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行处理成功");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行处理成功");
                         }
                         else
                         {
                             result.FailureCount++;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行处理失败");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行处理失败");
                             if (options.StopOnError)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 遇到错误停止导入");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 遇到错误停止导入");
                                 break;
                             }
                         }
                     }
                     
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据处理完成，处理行数: {processedRowCount}，成功: {result.SuccessCount}, 失败: {result.FailureCount}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据处理完成，处理行数: {processedRowCount}，成功: {result.SuccessCount}, 失败: {result.FailureCount}");
                     
                     // 提交事务 - 即使有错误也要提交成功的记录
                     if (result.SuccessCount > 0)
                     {
                         try
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
                             objectSpace.CommitChanges();
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
                         }
                         catch (Exception commitEx)
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
                             // 如果提交失败，记录错误并回滚
                             result.Errors.Add(new ImportError
                             {
@@ -641,13 +721,13 @@ namespace XpoExcelImportExport
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理过程中发生异常: {ex.Message}\n{ex.StackTrace}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理过程中发生异常: {ex.Message}\n{ex.StackTrace}");
                 result.Errors.Add(new ImportError
                 {
                     RowIndex = -1,
@@ -656,7 +736,7 @@ namespace XpoExcelImportExport
                 });
             }
             
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
             
             return result;
         }
@@ -666,11 +746,11 @@ namespace XpoExcelImportExport
         /// </summary>
         private T FindExistingObject<T>(ISheet worksheet, int rowIndex, Dictionary<int, IModelMember> fieldMappings, XPObjectSpace objectSpace, XpoExcelImportOptions options) where T : XPBaseObject
         {
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 开始查找现有对象，行索引: {rowIndex}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 开始查找现有对象，行索引: {rowIndex}");
             
             if (!string.IsNullOrEmpty(options.KeyMember))
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用指定关键字段: {options.KeyMember}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用指定关键字段: {options.KeyMember}");
                 
                 // 使用指定的关键字段查找
                 var keyMapping = fieldMappings.FirstOrDefault(x => x.Value.Name == options.KeyMember);
@@ -682,40 +762,40 @@ namespace XpoExcelImportExport
                         var cell = dataRow.GetCell(keyMapping.Key);
                         if (cell != null)
                         {
-                            var keyValue = ConvertCellValue(cell, keyMapping.Value);
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
+                            var keyValue = ConvertCellValue(cell, keyMapping.Value, objectSpace);
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
                             
                             var criteria = new BinaryOperator(options.KeyMember, keyValue?.ToString() ?? string.Empty);
                             var result = objectSpace.FindObject<T>(criteria);
                             
                             if (result != null)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到现有对象");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到现有对象");
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到现有对象");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到现有对象");
                             }
                             
                             return result;
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段单元格为空");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段单元格为空");
                         }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 数据行为空");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 数据行为空");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到关键字段映射");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到关键字段映射");
                 }
             }
             
-            // 使用主键查找 - 简化实现，直接使用第一个字段作为主键
+            // 使用主键查找 - 简化实现，直接使用第一个字段
             // 实际应用中可能需要更复杂的逻辑来确定主键
             var typeInfo = _application.Model.BOModel.GetClass(typeof(T));
             // 优先使用对象的主键字段
@@ -733,7 +813,7 @@ namespace XpoExcelImportExport
                 {
                     // 检查KeyProperty是否为字符串类型
                     var keyPropertyName = typeInfo.KeyProperty.ToString();
-                    if (!string.IsNullOrEmpty(keyPropertyName))
+                    if (!string.IsNullOrWhiteSpace(keyPropertyName))
                     {
                         keyMember = typeInfo.AllMembers.FirstOrDefault(m => m.Name == keyPropertyName);
                     }
@@ -745,10 +825,10 @@ namespace XpoExcelImportExport
                     keyMember = typeInfo.AllMembers.FirstOrDefault();
                 }
             }
-                           
+                            
             if (keyMember != null)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用默认关键字段: {keyMember.Name}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用默认关键字段: {keyMember.Name}");
                 
                 var keyMapping = fieldMappings.FirstOrDefault(x => x.Value.Name == keyMember.Name);
                 if (keyMapping.Value != null)
@@ -759,72 +839,64 @@ namespace XpoExcelImportExport
                         var cell = dataRow.GetCell(keyMapping.Key);
                         if (cell != null)
                         {
-                            var keyValue = ConvertCellValue(cell, keyMapping.Value);
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
+                            var keyValue = ConvertCellValue(cell, keyMapping.Value, objectSpace);
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
                             
                             var criteria = new BinaryOperator(keyMember.Name, keyValue?.ToString() ?? string.Empty);
                             var result = objectSpace.FindObject<T>(criteria);
                             
                             if (result != null)
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到现有对象");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到现有对象");
                             }
                             else
                             {
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到现有对象");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到现有对象");
                             }
                             
                             return result;
                         }
                         else
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段单元格为空");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段单元格为空");
                         }
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 数据行为空");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 数据行为空");
                     }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到关键字段映射");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到关键字段映射");
                 }
             }
             else
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到类型关键字段");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到类型关键字段");
             }
             
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 返回null");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 返回null");
             return null;
         }
         
         /// <summary>
         /// 转换单元格值到指定类型
         /// </summary>
-        private object ConvertCellValue(ICell cell, IModelMember member)
+        private object ConvertCellValue(ICell cell, IModelMember member, XPObjectSpace objectSpace)
         {
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 开始转换单元格值: 列={cell.ColumnIndex}, 行={cell.RowIndex}, 字段={member.Name}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 开始转换单元格值: 列={cell.ColumnIndex}, 行={cell.RowIndex}, 字段={member.Name}");
             
             var memberType = member.MemberInfo.MemberType;
             
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 成员类型: {memberType.FullName}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 成员类型: {memberType.FullName}");
             
             // 处理可空类型
             if (memberType.IsValueType && memberType.IsGenericType && 
                 memberType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 memberType = memberType.GetGenericArguments()[0];
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 处理可空类型，基础类型: {memberType.FullName}");
-            }
-            
-            // 处理关联对象
-            if (typeof(XPBaseObject).IsAssignableFrom(memberType))
-            {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 关联对象类型，返回null");
-                // 这里简化处理，实际应用中可能需要更复杂的逻辑
-                return null;
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 处理可空类型，基础类型: {memberType.FullName}");
             }
             
             // 获取单元格值
@@ -834,7 +906,7 @@ namespace XpoExcelImportExport
             {
                 case CellType.String:
                     cellValue = cell.StringCellValue;
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 字符串类型值: {cellValue}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 字符串类型值: {cellValue}");
                     break;
                 case CellType.Numeric:
                     // 对于数值类型，需要特别处理
@@ -850,25 +922,25 @@ namespace XpoExcelImportExport
                             dateValue.Value.Year > 1900) // 如果年份大于1900，很可能是真正的日期
                         {
                             cellValue = dateValue.Value;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 日期类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 日期类型值: {cellValue}");
                         }
                         else
                         {
                             // 不是有效的日期，作为数字处理
                             cellValue = cell.NumericCellValue;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 数字类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 数字类型值: {cellValue}");
                         }
                     }
                     catch
                     {
                         // 转换失败，作为数字处理
                         cellValue = cell.NumericCellValue;
-                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 数字类型값(异常处理): {cellValue}");
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 数字类型值(异常处理): {cellValue}");
                     }
                     break;
                 case CellType.Boolean:
                     cellValue = cell.BooleanCellValue;
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 布尔类型值: {cellValue}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 布尔类型值: {cellValue}");
                     break;
                 case CellType.Formula:
                     // 计算公式结果
@@ -876,7 +948,7 @@ namespace XpoExcelImportExport
                     {
                         case CellType.String:
                             cellValue = cell.StringCellValue;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式字符串类型값: {cellValue}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式字符串类型值: {cellValue}");
                             break;
                         case CellType.Numeric:
                             // 对于公式计算的数值，同样需要判断是否为日期
@@ -888,36 +960,64 @@ namespace XpoExcelImportExport
                                     dateValue.Value.Year > 1900)
                                 {
                                     cellValue = dateValue.Value;
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式日期类型값: {cellValue}");
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式日期类型值: {cellValue}");
                                 }
                                 else
                                 {
                                     // 不是有效的日期，作为数字处理
                                     cellValue = cell.NumericCellValue;
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式数字类型값: {cellValue}");
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式数字类型值: {cellValue}");
                                 }
                             }
                             catch
                             {
                                 // 转换失败，作为数字处理
                                 cellValue = cell.NumericCellValue;
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式数字类型값(异常处理): {cellValue}");
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式数字类型值(异常处理): {cellValue}");
                             }
                             break;
                         case CellType.Boolean:
                             cellValue = cell.BooleanCellValue;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式布尔类型값: {cellValue}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式布尔类型值: {cellValue}");
                             break;
                         default:
                             cellValue = cell.StringCellValue;
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式默认类型값: {cellValue}");
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式默认类型值: {cellValue}");
                             break;
                     }
                     break;
                 default:
                     cellValue = string.Empty;
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 默认类型값: {cellValue}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 默认类型值: {cellValue}");
                     break;
+            }
+            
+            // 处理关联对象
+            if (typeof(XPBaseObject).IsAssignableFrom(memberType))
+            {
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 处理关联对象类型: {memberType.Name}");
+                
+                // 如果单元格值为空，返回null
+                if (cellValue == null || (cellValue is string str && string.IsNullOrWhiteSpace(str)))
+                {
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 关联对象单元格值为空，返回null");
+                    return null;
+                }
+                
+                // 查找适合当前类型的关联对象转换器
+                var converter = GetRelatedObjectConverter(memberType);
+                if (converter != null)
+                {
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 找到适合的关联对象转换器: {converter.GetType().Name}");
+                    // 使用转换器转换值
+                    return converter.Convert(cellValue, member, objectSpace);
+                }
+                else
+                {
+                    // 没有找到适合的转换器，返回null
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 没有找到适合的关联对象转换器，返回null");
+                    return null;
+                }
             }
             
             // 转换基本类型
@@ -926,18 +1026,18 @@ namespace XpoExcelImportExport
                 // 处理空字符串情况
                 if (cellValue == null || (cellValue is string str && string.IsNullOrWhiteSpace(str)))
                 {
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 空字符串转换为DateTime，返回DateTime.MinValue");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 空字符串转换为DateTime，返回DateTime.MinValue");
                     return DateTime.MinValue;
                 }
                 
                 var result = Convert.ToDateTime(cellValue);
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为DateTime: {result}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为DateTime: {result}");
                 return result;
             }
             else if (memberType == typeof(bool))
             {
                 var result = Convert.ToBoolean(cellValue);
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为Boolean: {result}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为Boolean: {result}");
                 return result;
             }
             else if (memberType.IsEnum)
@@ -945,13 +1045,13 @@ namespace XpoExcelImportExport
                 if (cellValue is double numericValue)
                 {
                     var result = Enum.ToObject(memberType, numericValue);
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为枚举(数字): {result}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为枚举(数字): {result}");
                     return result;
                 }
                 else
                 {
                     var result = Enum.Parse(memberType, cellValue.ToString());
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为枚举(字符串): {result}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为枚举(字符串): {result}");
                     return result;
                 }
             }
@@ -971,24 +1071,24 @@ namespace XpoExcelImportExport
                         numericValue += 1;
                     
                     var result = Convert.ChangeType(numericValue, memberType);
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换Excel日期数值为{memberType.Name}: {result}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换Excel日期数值为{memberType.Name}: {result}");
                     return result;
                 }
                 else
                 {
                     var result = Convert.ChangeType(cellValue, memberType);
-                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为数值类型: {result}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为数值类型: {result}");
                     return result;
                 }
             }
             else if (memberType.IsValueType || memberType == typeof(string))
             {
                 var result = Convert.ChangeType(cellValue, memberType);
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为基本类型: {result}");
+                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为基本类型: {result}");
                 return result;
             }
             
-            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 返回原始值: {cellValue}");
+            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 返回原始值: {cellValue}");
             return cellValue;
         }
         
@@ -1036,29 +1136,50 @@ namespace XpoExcelImportExport
     }
     
     /// <summary>
-    /// 导出选项
+    /// 导入结果
     /// </summary>
-    public class XpoExcelExportOptions
+    public class ImportResult
     {
-        public XpoExcelExportOptions()
-        {
-            AutoFitColumns = true;
-        }
+        /// <summary>
+        /// 成功导入的记录数
+        /// </summary>
+        public int SuccessCount { get; set; }
         
         /// <summary>
-        /// 是否自动调整列宽
+        /// 失败的记录数
         /// </summary>
-        public bool AutoFitColumns { get; set; }
+        public int FailureCount { get; set; }
         
         /// <summary>
-        /// 要排除的成员列表
+        /// 导入过程中发生的错误
         /// </summary>
-        public IEnumerable<string> ExcludedMembers { get; set; }
+        public List<ImportError> Errors { get; set; } = new List<ImportError>();
         
         /// <summary>
-        /// 要包含的成员列表
+        /// 是否包含错误
         /// </summary>
-        public IEnumerable<string> IncludedMembers { get; set; }
+        public bool HasErrors => Errors != null && Errors.Count > 0;
+    }
+    
+    /// <summary>
+    /// 导入错误
+    /// </summary>
+    public class ImportError
+    {
+        /// <summary>
+        /// 错误行索引
+        /// </summary>
+        public int RowIndex { get; set; }
+        
+        /// <summary>
+        /// 错误字段名称
+        /// </summary>
+        public string FieldName { get; set; }
+        
+        /// <summary>
+        /// 错误信息
+        /// </summary>
+        public string ErrorMessage { get; set; }
     }
     
     /// <summary>
@@ -1067,7 +1188,7 @@ namespace XpoExcelImportExport
     public enum ImportMode
     {
         /// <summary>
-        /// 仅新建
+        /// 仅创建新记录
         /// </summary>
         CreateOnly,
         
@@ -1077,12 +1198,12 @@ namespace XpoExcelImportExport
         UpdateOnly,
         
         /// <summary>
-        /// 新建和更新（默认模式）
+        /// 创建新记录并更新现有记录
         /// </summary>
         CreateAndUpdate,
         
         /// <summary>
-        /// 删除后更新
+        /// 删除现有记录并创建新记录
         /// </summary>
         DeleteAndUpdate
     }
@@ -1092,84 +1213,40 @@ namespace XpoExcelImportExport
     /// </summary>
     public class XpoExcelImportOptions
     {
-        public XpoExcelImportOptions()
-        {
-            UpdateExisting = false;
-            StopOnError = false;
-            Mode = ImportMode.CreateAndUpdate; // 默认模式
-        }
-        
         /// <summary>
         /// 导入模式
         /// </summary>
-        public ImportMode Mode { get; set; }
+        public ImportMode Mode { get; set; } = ImportMode.CreateAndUpdate;
         
         /// <summary>
-        /// 是否更新现有对象（已过时，使用Mode属性）
-        /// </summary>
-        [Obsolete("请使用Mode属性")]
-        public bool UpdateExisting { get; set; }
-        
-        /// <summary>
-        /// 关键字段名，用于查找现有对象
+        /// 关键字段名称
         /// </summary>
         public string KeyMember { get; set; }
         
         /// <summary>
-        /// 是否在遇到错误时停止导入
+        /// 是否遇到错误时停止导入
         /// </summary>
-        public bool StopOnError { get; set; }
+        public bool StopOnError { get; set; } = false;
     }
     
     /// <summary>
-    /// 导入结果
+    /// 导出选项
     /// </summary>
-    public class ImportResult
-    {
-        public ImportResult()
-        {
-            Errors = new List<ImportError>();
-        }
-        
-        /// <summary>
-        /// 成功导入的记录数
-        /// </summary>
-        public int SuccessCount { get; set; }
-        
-        /// <summary>
-        /// 导入失败的记录数
-        /// </summary>
-        public int FailureCount { get; set; }
-        
-        /// <summary>
-        /// 错误列表
-        /// </summary>
-        public List<ImportError> Errors { get; set; }
-        
-        /// <summary>
-        /// 是否有错误
-        /// </summary>
-        public bool HasErrors => Errors.Any();
-    }
-    
-    /// <summary>
-    /// 导入错误
-    /// </summary>
-    public class ImportError
+    public class XpoExcelExportOptions
     {
         /// <summary>
-        /// 行索引
+        /// 是否自动调整列宽
         /// </summary>
-        public int RowIndex { get; set; }
+        public bool AutoFitColumns { get; set; } = true;
         
         /// <summary>
-        /// 字段名
+        /// 要排除的成员名称列表
         /// </summary>
-        public string FieldName { get; set; }
+        public List<string> ExcludedMembers { get; set; }
         
         /// <summary>
-        /// 错误信息
+        /// 要包含的成员名称列表
         /// </summary>
-        public string ErrorMessage { get; set; }
+        public List<string> IncludedMembers { get; set; }
     }
 }
