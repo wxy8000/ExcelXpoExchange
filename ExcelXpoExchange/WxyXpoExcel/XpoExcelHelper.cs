@@ -232,63 +232,156 @@ namespace WxyXpoExcel
             
             using (var objectSpace = _application.CreateObjectSpace(typeof(T)) as XPObjectSpace)
             {
-                var objects = objectSpace.GetObjects<T>(criteria);
-                var typeInfo = _application.Model.BOModel.GetClass(typeof(T));
-                
-                // 获取要导出的成员
-                var members = GetExportMembers(typeInfo, options);
-                
-                // 创建表头样式
-                ICellStyle headerStyle = worksheet.Workbook.CreateCellStyle();
-                IFont headerFont = worksheet.Workbook.CreateFont();
-                headerFont.IsBold = true;
-                headerFont.Color = IndexedColors.White.Index;
-                headerStyle.SetFont(headerFont);
-                headerStyle.FillForegroundColor = IndexedColors.Orange.Index;
-                headerStyle.FillPattern = FillPattern.SolidForeground;
-                
-                // 写入表头
-                IRow headerRow = worksheet.CreateRow(0);
-                for (int i = 0; i < members.Length; i++)
+                // 特殊处理DataDictionary类型（使用反射避免直接引用）
+                bool isDataDictionaryType = typeof(T).FullName == "WxyXaf.DataDictionaries.DataDictionary";
+                if (isDataDictionaryType)
                 {
-                    ICell cell = headerRow.CreateCell(i);
+                    // 获取所有DataDictionary对象
+                    var objects = objectSpace.GetObjects<T>(criteria);
                     
-                    // 检查是否有ExcelFieldAttribute并使用其Caption
-                    var fieldAttribute = members[i].MemberInfo.MemberTypeInfo.Type.GetProperty(members[i].Name)?.GetCustomAttribute<ExcelFieldAttribute>();
-                    var caption = fieldAttribute?.Caption ?? members[i].Caption;
-                    cell.SetCellValue(caption);
-                    cell.CellStyle = headerStyle;
-                }
-                
-                // 写入数据
-                int rowIndex = 1;
-                foreach (var obj in objects)
-                {
-                    IRow dataRow = worksheet.CreateRow(rowIndex);
-                    for (int i = 0; i < members.Length; i++)
+                    // 创建字典项的表头样式
+                    ICellStyle headerStyle = worksheet.Workbook.CreateCellStyle();
+                    IFont headerFont = worksheet.Workbook.CreateFont();
+                    headerFont.IsBold = true;
+                    headerFont.Color = IndexedColors.White.Index;
+                    headerStyle.SetFont(headerFont);
+                    headerStyle.FillForegroundColor = IndexedColors.Orange.Index;
+                    headerStyle.FillPattern = FillPattern.SolidForeground;
+                    
+                    // 创建字典名称的标题样式
+                    ICellStyle titleStyle = worksheet.Workbook.CreateCellStyle();
+                    IFont titleFont = worksheet.Workbook.CreateFont();
+                    titleFont.IsBold = true;
+                    titleFont.FontHeightInPoints = 14;
+                    titleFont.Color = IndexedColors.Black.Index;
+                    titleStyle.SetFont(titleFont);
+                    titleStyle.Alignment = HorizontalAlignment.Center;
+                    
+                    int currentRowIndex = 0;
+                    
+                    // 遍历所有数据字典
+                    foreach (var dataDictionary in objects)
                     {
-                        var member = members[i];
-                        var value = obj.GetMemberValue(member.Name);
+                        // 使用反射获取字典名称
+                        string dictionaryName = (string)dataDictionary.GetMemberValue("Name");
                         
-                        // 处理关联对象
-                        if (value is XPBaseObject relatedObj)
+                        // 1. 写入字典名称作为标题第一行
+                        IRow titleRow = worksheet.CreateRow(currentRowIndex);
+                        ICell titleCell = titleRow.CreateCell(0);
+                        titleCell.SetCellValue(dictionaryName);
+                        titleCell.CellStyle = titleStyle;
+                        // 合并单元格，使其横跨所有列
+                        worksheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(currentRowIndex, currentRowIndex, 0, 3));
+                        currentRowIndex++;
+                        
+                        // 2. 写入字典项的表头
+                        IRow headerRow = worksheet.CreateRow(currentRowIndex);
+                        headerRow.CreateCell(0).SetCellValue("名称");
+                        headerRow.CreateCell(1).SetCellValue("编码");
+                        headerRow.CreateCell(2).SetCellValue("描述");
+                        headerRow.CreateCell(3).SetCellValue("顺序");
+                        
+                        // 设置表头样式
+                        for (int i = 0; i < 4; i++)
                         {
-                            var displayMember = member.MemberInfo.MemberTypeInfo.DefaultMember;
-                            value = relatedObj.GetMemberValue(displayMember?.Name ?? relatedObj.ClassInfo.KeyProperty.Name);
+                            headerRow.Cells[i].CellStyle = headerStyle;
+                        }
+                        currentRowIndex++;
+                        
+                        // 3. 使用反射获取字典项数据
+                        var items = (System.Collections.IEnumerable)dataDictionary.GetMemberValue("Items");
+                        if (items != null)
+                        {
+                            foreach (var item in items)
+                            {
+                                // 将item转换为XPBaseObject类型，因为GetMemberValue是XPBaseObject的方法
+                                var xpItem = item as XPBaseObject;
+                                if (xpItem != null)
+                                {
+                                    IRow dataRow = worksheet.CreateRow(currentRowIndex);
+                                    dataRow.CreateCell(0).SetCellValue((string)xpItem.GetMemberValue("Name"));
+                                    dataRow.CreateCell(1).SetCellValue((string)xpItem.GetMemberValue("Code") ?? string.Empty);
+                                    dataRow.CreateCell(2).SetCellValue((string)xpItem.GetMemberValue("Description") ?? string.Empty);
+                                    dataRow.CreateCell(3).SetCellValue((int)xpItem.GetMemberValue("Order"));
+                                    currentRowIndex++;
+                                }
+                            }
                         }
                         
-                        ICell cell = dataRow.CreateCell(i);
-                        SetCellValue(cell, value);
+                        // 每个字典之间空一行
+                        currentRowIndex++;
                     }
-                    rowIndex++;
+                    
+                    // 自动调整列宽
+                    if (options.AutoFitColumns)
+                    {
+                        for (int i = 0; i < 4; i++)
+                        {
+                            worksheet.AutoSizeColumn(i);
+                        }
+                    }
                 }
-                
-                // 自动调整列宽
-                if (options.AutoFitColumns)
+                else
                 {
+                    // 原有逻辑，处理其他类型
+                    var objects = objectSpace.GetObjects<T>(criteria);
+                    var typeInfo = _application.Model.BOModel.GetClass(typeof(T));
+                    
+                    // 获取要导出的成员
+                    var members = GetExportMembers(typeInfo, options);
+                    
+                    // 创建表头样式
+                    ICellStyle headerStyle = worksheet.Workbook.CreateCellStyle();
+                    IFont headerFont = worksheet.Workbook.CreateFont();
+                    headerFont.IsBold = true;
+                    headerFont.Color = IndexedColors.White.Index;
+                    headerStyle.SetFont(headerFont);
+                    headerStyle.FillForegroundColor = IndexedColors.Orange.Index;
+                    headerStyle.FillPattern = FillPattern.SolidForeground;
+                    
+                    // 写入表头
+                    IRow headerRow = worksheet.CreateRow(0);
                     for (int i = 0; i < members.Length; i++)
                     {
-                        worksheet.AutoSizeColumn(i);
+                        ICell cell = headerRow.CreateCell(i);
+                        
+                        // 检查是否有ExcelFieldAttribute并使用其Caption
+                        var fieldAttribute = members[i].MemberInfo.MemberTypeInfo.Type.GetProperty(members[i].Name)?.GetCustomAttribute<ExcelFieldAttribute>();
+                        var caption = fieldAttribute?.Caption ?? members[i].Caption;
+                        cell.SetCellValue(caption);
+                        cell.CellStyle = headerStyle;
+                    }
+                    
+                    // 写入数据
+                    int rowIndex = 1;
+                    foreach (var obj in objects)
+                    {
+                        IRow dataRow = worksheet.CreateRow(rowIndex);
+                        for (int i = 0; i < members.Length; i++)
+                        {
+                            var member = members[i];
+                            var value = obj.GetMemberValue(member.Name);
+                            
+                            // 处理关联对象
+                            if (value is XPBaseObject relatedObj)
+                            {
+                                var displayMember = member.MemberInfo.MemberTypeInfo.DefaultMember;
+                                value = relatedObj.GetMemberValue(displayMember?.Name ?? relatedObj.ClassInfo.KeyProperty.Name);
+                            }
+                            
+                            ICell cell = dataRow.CreateCell(i);
+                            SetCellValue(cell, value);
+                        }
+                        rowIndex++;
+                    }
+                    
+                    // 自动调整列宽
+                    if (options.AutoFitColumns)
+                    {
+                        for (int i = 0; i < members.Length; i++)
+                        {
+                            worksheet.AutoSizeColumn(i);
+                        }
                     }
                 }
             }
