@@ -412,9 +412,10 @@ using WxyXpoExcel
                     return;
                 }
 
-                // 创建XpoExcelHelper实例
+                // 创建XpoExcelHelper实例，并注册DataDictionaryItemConverter
                 var platformService = ServiceProvider.GetService<IPlatformService>();
-                var excelHelper = new XpoExcelHelper(application, platformService);
+                var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
+                var excelHelper = new XpoExcelHelper(application, platformService, new[] { dataDictionaryItemConverter });
 
                 // 保存文件到临时位置
                 string tempFilePath = Path.GetTempFileName() + ".xlsx";
