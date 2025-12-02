@@ -4,16 +4,16 @@ using DevExpress.ExpressApp.Blazor;
 using DevExpress.ExpressApp.SystemModule;
 using DevExpress.ExpressApp.Updating;
 using DevExpress.ExpressApp.Xpo;
-using ExcelXpoExchange.Blazor.Server.Services;
+using WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.Services;
 
-namespace ExcelXpoExchange.Blazor.Server
+namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
 {
     public class ExcelXpoExchangeBlazorApplication : BlazorApplication
     {
         public ExcelXpoExchangeBlazorApplication()
         {
             ApplicationName = "ExcelXpoExchange";
-            // Ê¹ÓÃModuleInfoÀ´¼ì²é¼æÈİĞÔ£¬ÕâÊÇDevExpressÍÆ¼öµÄ·½Ê½
+            // ä½¿ç”¨ModuleInfoæ¥å­˜å‚¨ç‰ˆæœ¬ä¿¡æ¯ï¼Œéµå¾ªDevExpresså®˜æ–¹çš„æ–¹å¼
             CheckCompatibilityType = DevExpress.ExpressApp.CheckCompatibilityType.ModuleInfo;
             DatabaseVersionMismatch += ExcelXpoExchangeBlazorApplication_DatabaseVersionMismatch;
         }
@@ -21,13 +21,13 @@ namespace ExcelXpoExchange.Blazor.Server
         {
             base.OnSetupStarted();
 
-            // È·±£ÔÚËùÓĞÇé¿öÏÂ¶¼ÄÜÕıÈ·¸üĞÂÊı¾İ¿â
-            // ÉèÖÃÎªUpdateDatabaseAlwaysÒÔ×Ô¶¯¸üĞÂÊı¾İ¿â¼Ü¹¹
+            // ç¡®ä¿æ•°æ®åº“è¿æ¥å­—ç¬¦ä¸²è¢«æ­£ç¡®é…ç½®
+            // è®¾ç½®ä¸ºUpdateDatabaseAlwaysä»¥è‡ªåŠ¨æ›´æ–°æ•°æ®åº“ç»“æ„
             DatabaseUpdateMode = DatabaseUpdateMode.UpdateDatabaseAlways;
         }
         void ExcelXpoExchangeBlazorApplication_DatabaseVersionMismatch(object sender, DatabaseVersionMismatchEventArgs e)
         {
-            // ÔÚËùÓĞÇé¿öÏÂ¶¼×Ô¶¯¸üĞÂÊı¾İ¿â£¬±ÜÃâÅ×³ö´íÎó
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¶ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ¿â£¬ï¿½ï¿½ï¿½ï¿½ï¿½×³ï¿½ï¿½ï¿½ï¿½ï¿½
             e.Updater.Update();
             e.Handled = true;
         }

@@ -1,4 +1,7 @@
 using System.Configuration;
+using System.Data.SQLite;
+using System.IO;
+using System.Reflection;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.ApplicationBuilder;
 using DevExpress.ExpressApp.Design;
@@ -8,8 +11,10 @@ using DevExpress.ExpressApp.Win.ApplicationBuilder;
 using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl;
 using DevExpress.XtraEditors;
+using WxyXaf.XpoExcel;
+using WxyXaf.Demo.XpoExcelDictionary.Module;
 
-namespace ExcelXpoExchange.Win
+namespace WxyXaf.Demo.XpoExcelDictionary.Win
 {
     public class ApplicationBuilder : IDesignTimeApplicationFactory
     {
@@ -22,14 +27,14 @@ namespace ExcelXpoExchange.Win
             // builder.UseServiceProviderFactory(new DryIocServiceProviderFactory());
             // builder.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 
-            builder.UseApplication<ExcelXpoExchangeWindowsFormsApplication>();
+            builder.UseApplication<WxyXaf.Demo.XpoExcelDictionary.Win.ExcelXpoExchangeWindowsFormsApplication>();
             builder.Modules
                 .AddConditionalAppearance()
                 .AddValidation(options =>
                 {
                     options.AllowValidationDetailsAccess = false;
                 })
-                .Add<ExcelXpoExchange.Module.ExcelXpoExchangeModule>()
+                .Add<WxyXaf.Demo.XpoExcelDictionary.Module.ExcelXpoExchangeModule>()
                 .Add<WxyXaf.XpoExcel.WxyXafXpoExcelModule>()
                 .Add<ExcelXpoExchangeWinModule>();
             builder.ObjectSpaceProviders

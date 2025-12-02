@@ -10,6 +10,8 @@
     <FileVersion>1.0.0.0</FileVersion>
     <Configurations>Debug;Release;EasyTest</Configurations>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WxyXaf.Demo.XpoExcelDictionary.Win</RootNamespace>
+    <AssemblyName>WxyXaf.Demo.XpoExcelDictionary.Win</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <Using Include="DevExpress.ExpressApp.ListView" Alias="ListView" />
@@ -41,8 +43,8 @@
     
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ExcelXpoExchange.Module\ExcelXpoExchange.Module.csproj" />
-    <ProjectReference Include="..\\WxyXaf.XpoExcel\\WxyXaf.XpoExcel.csproj" />
+    <ProjectReference Include="..\WxyXaf.Demo.XpoExcelDictionary.Module\WxyXaf.Demo.XpoExcelDictionary.Module.csproj" />
+    <ProjectReference Include="..\WxyXaf.XpoExcel\WxyXaf.XpoExcel.csproj" />
     <ProjectReference Include="..\WxyXaf.DataDictionaries\WxyXaf.DataDictionaries.csproj" />
   </ItemGroup>
 </Project>

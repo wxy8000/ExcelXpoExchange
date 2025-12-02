@@ -7,6 +7,8 @@
     <FileVersion>1.0.0.0</FileVersion>
     <Configurations>Debug;Release;EasyTest</Configurations>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>WxyXaf.Demo.XpoExcelDictionary.Module</RootNamespace>
+    <AssemblyName>WxyXaf.Demo.XpoExcelDictionary.Module</AssemblyName>
   </PropertyGroup>
   <ItemGroup>
     <None Remove="Model.DesignedDiffs.xafml" />

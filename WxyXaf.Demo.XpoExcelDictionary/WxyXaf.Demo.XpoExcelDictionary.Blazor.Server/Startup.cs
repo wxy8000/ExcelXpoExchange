@@ -1,11 +1,12 @@
 using DevExpress.ExpressApp.ApplicationBuilder;
 using DevExpress.ExpressApp.Blazor.ApplicationBuilder;
 using DevExpress.ExpressApp.Blazor.Services;
+using WxyXaf.XpoExcel;
 using WxyXaf.DataDictionaries;
-using ExcelXpoExchange.Blazor.Server.Services;
+using WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.Services;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 
-namespace ExcelXpoExchange.Blazor.Server
+namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
 {
     public class Startup
     {
@@ -28,16 +29,16 @@ namespace ExcelXpoExchange.Blazor.Server
             services.AddScoped<CircuitHandler, CircuitHandlerProxy>();
             services.AddXaf(Configuration, builder =>
             {
-                builder.UseApplication<ExcelXpoExchangeBlazorApplication>();
+                builder.UseApplication<WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.ExcelXpoExchangeBlazorApplication>();
                 builder.Modules
                     .AddConditionalAppearance()
                     .AddValidation(options =>
                     {
                         options.AllowValidationDetailsAccess = false;
                     })
-                    .Add<ExcelXpoExchange.Module.ExcelXpoExchangeModule>()
+                    .Add<WxyXaf.Demo.XpoExcelDictionary.Module.ExcelXpoExchangeModule>()
                     .Add<DataDictionariesModule>()
-                    .Add<ExcelXpoExchangeBlazorModule>();
+                    .Add<WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.ExcelXpoExchangeBlazorModule>();
                 builder.ObjectSpaceProviders
                     .AddXpo((serviceProvider, options) =>
                     {
@@ -53,11 +54,11 @@ namespace ExcelXpoExchange.Blazor.Server
 #endif
                         ArgumentNullException.ThrowIfNull(connectionString);
                         
-                        // ¼ì²éÊý¾Ý¿â¼æÈÝÐÔ£¬Èç¹û²»¼æÈÝÔòÉ¾³ý¾ÉÊý¾Ý¿â
-                        // ÌáÈ¡SQLiteÊý¾Ý¿âÎÄ¼þÂ·¾¶
+                        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                        // ï¿½ï¿½È¡SQLiteï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ä¼ï¿½Â·ï¿½ï¿½
                         if (connectionString.Contains("XpoProvider=SQLite"))
                         {
-                            // ½âÎöÁ¬½Ó×Ö·û´®£¬»ñÈ¡Data Source²ÎÊý
+                            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡Data Sourceï¿½ï¿½ï¿½ï¿½
                             var dataSourceParam = connectionString.Split(';')
                                 .FirstOrDefault(p => p.Trim().StartsWith("Data Source", StringComparison.OrdinalIgnoreCase));
                             
@@ -65,19 +66,19 @@ namespace ExcelXpoExchange.Blazor.Server
                             {
                                 var dbFilePath = dataSourceParam.Split('=')[1].Trim();
                                 
-                                // ¼ì²éÊý¾Ý¿âÎÄ¼þÊÇ·ñ´æÔÚ
+                                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ä¼ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
                                 if (System.IO.File.Exists(dbFilePath))
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¼ì²éÊý¾Ý¿â¼æÈÝÐÔ: {dbFilePath}");
+                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: {dbFilePath}");
                                     
-                                    // ³¢ÊÔ´ò¿ªÊý¾Ý¿â²¢¼ì²é¼æÈÝÐÔ
+                                    // ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ý¿â²¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                                     try
                                     {
                                         using (var sqliteConnection = new System.Data.SQLite.SQLiteConnection($"Data Source={dbFilePath}"))
                                         {
                                             sqliteConnection.Open();
                                             
-                                            // ¼ì²éÊý¾Ý¿â°æ±¾±íÊÇ·ñ´æÔÚ
+                                            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½æ±¾ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
                                             using (var command = new System.Data.SQLite.SQLiteCommand(
                                                 "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='XPObjectType'", 
                                                 sqliteConnection))
@@ -85,21 +86,21 @@ namespace ExcelXpoExchange.Blazor.Server
                                                 var count = Convert.ToInt32(command.ExecuteScalar());
                                                 if (count == 0)
                                                 {
-                                                    // Êý¾Ý¿â½á¹¹²»¼æÈÝ£¬É¾³ý¾ÉÊý¾Ý¿â
-                                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Êý¾Ý¿â½á¹¹²»¼æÈÝ£¬É¾³ý¾ÉÊý¾Ý¿â: {dbFilePath}");
+                                                    // ï¿½ï¿½ï¿½Ý¿ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½Ý¿ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½: {dbFilePath}");
                                                     sqliteConnection.Close();
                                                     System.IO.File.Delete(dbFilePath);
-                                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¾ÉÊý¾Ý¿âÒÑÉ¾³ý");
+                                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½É¾ï¿½ï¿½");
                                                 }
                                             }
                                         }
                                     }
                                     catch (Exception ex)
                                     {
-                                        // Á¬½ÓÊ§°Ü£¬Êý¾Ý¿â¿ÉÄÜËð»µ»ò²»¼æÈÝ£¬É¾³ý¾ÉÊý¾Ý¿â
-                                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Êý¾Ý¿âÁ¬½ÓÊ§°Ü£¬É¾³ý¾ÉÊý¾Ý¿â: {dbFilePath}, ´íÎó: {ex.Message}");
+                                        // ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ð»µ»ò²»¼ï¿½ï¿½Ý£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½: {dbFilePath}, ï¿½ï¿½ï¿½ï¿½: {ex.Message}");
                                         System.IO.File.Delete(dbFilePath);
-                                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¾ÉÊý¾Ý¿âÒÑÉ¾³ý");
+                                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½É¾ï¿½ï¿½");
                                     }
                                 }
                             }

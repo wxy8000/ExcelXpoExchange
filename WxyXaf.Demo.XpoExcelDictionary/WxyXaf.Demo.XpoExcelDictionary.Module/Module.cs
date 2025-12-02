@@ -13,7 +13,7 @@ using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl;
 using DevExpress.Xpo;
 
-namespace ExcelXpoExchange.Module
+namespace WxyXaf.Demo.XpoExcelDictionary.Module
 {
     // For more typical usage scenarios, be sure to check out https://docs.devexpress.com/eXpressAppFramework/DevExpress.ExpressApp.ModuleBase.
     public sealed class ExcelXpoExchangeModule : ModuleBase

@@ -1,4 +1,5 @@
 using System.Configuration;
+using System.Data.SQLite;
 using System.IO;
 using System.Reflection;
 using DevExpress.ExpressApp;
@@ -12,7 +13,7 @@ using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl;
 using DevExpress.XtraEditors;
 
-namespace ExcelXpoExchange.Win
+namespace WxyXaf.Demo.XpoExcelDictionary.Win
 {
     internal static class Program
     {
@@ -22,17 +23,17 @@ namespace ExcelXpoExchange.Win
         }
         
         /// <summary>
-        /// ¼ì²éÊý¾Ý¿â¼æÈÝÐÔ£¬Èç¹û²»¼æÈÝÔòÉ¾³ý¾ÉÊý¾Ý¿â
+        /// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
         /// </summary>
-        /// <param name="connectionString">Êý¾Ý¿âÁ¬½Ó×Ö·û´®</param>
+        /// <param name="connectionString">ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½</param>
         static void CheckAndDeleteIncompatibleDatabase(string connectionString)
         {
             try
             {
-                // ÌáÈ¡SQLiteÊý¾Ý¿âÎÄ¼þÂ·¾¶
+                // ï¿½ï¿½È¡SQLiteï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ä¼ï¿½Â·ï¿½ï¿½
                 if (connectionString.Contains("XpoProvider=SQLite"))
                 {
-                    // ½âÎöÁ¬½Ó×Ö·û´®£¬»ñÈ¡Data Source²ÎÊý
+                    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½È¡Data Sourceï¿½ï¿½ï¿½ï¿½
                     var dataSourceParam = connectionString.Split(';')
                         .FirstOrDefault(p => p.Trim().StartsWith("Data Source", StringComparison.OrdinalIgnoreCase));
                     
@@ -40,20 +41,20 @@ namespace ExcelXpoExchange.Win
                     {
                         var dbFilePath = dataSourceParam.Split('=')[1].Trim();
                         
-                        // ¼ì²éÊý¾Ý¿âÎÄ¼þÊÇ·ñ´æÔÚ
+                        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½Ä¼ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
                         if (File.Exists(dbFilePath))
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¼ì²éÊý¾Ý¿â¼æÈÝÐÔ: {dbFilePath}");
+                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: {dbFilePath}");
                             
-                            // ³¢ÊÔ´ò¿ªÊý¾Ý¿â²¢¼ì²é¼æÈÝÐÔ
-                            // ÕâÀïÎÒÃÇ¼ò»¯´¦Àí£¬Ö±½Ó³¢ÊÔÁ¬½Ó£¬Èç¹ûÊ§°ÜÔòÉ¾³ý¾ÉÊý¾Ý¿â
+                            // ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ï¿½ï¿½Ý¿â²¢ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ç¼ò»¯´ï¿½ï¿½ï¿½ï¿½ï¿½Ö±ï¿½Ó³ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó£ï¿½ï¿½ï¿½ï¿½Ê§ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
                             try
                             {
                                 using (var connection = new System.Data.SQLite.SQLiteConnection($"Data Source={dbFilePath}"))
                                 {
                                     connection.Open();
                                     
-                                    // ¼ì²éÊý¾Ý¿â°æ±¾±íÊÇ·ñ´æÔÚ
+                                    // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½æ±¾ï¿½ï¿½ï¿½Ç·ï¿½ï¿½ï¿½ï¿½
                                     using (var command = new System.Data.SQLite.SQLiteCommand(
                                         "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='XPObjectType'", 
                                         connection))
@@ -61,21 +62,21 @@ namespace ExcelXpoExchange.Win
                                         var count = Convert.ToInt32(command.ExecuteScalar());
                                         if (count == 0)
                                         {
-                                            // Êý¾Ý¿â½á¹¹²»¼æÈÝ£¬É¾³ý¾ÉÊý¾Ý¿â
-                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Êý¾Ý¿â½á¹¹²»¼æÈÝ£¬É¾³ý¾ÉÊý¾Ý¿â: {dbFilePath}");
+                                            // ï¿½ï¿½ï¿½Ý¿ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½Ý¿ï¿½á¹¹ï¿½ï¿½ï¿½ï¿½ï¿½Ý£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½: {dbFilePath}");
                                             connection.Close();
                                             File.Delete(dbFilePath);
-                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¾ÉÊý¾Ý¿âÒÑÉ¾³ý");
+                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½É¾ï¿½ï¿½");
                                         }
                                     }
                                 }
                             }
                             catch (Exception ex)
                             {
-                                // Á¬½ÓÊ§°Ü£¬Êý¾Ý¿â¿ÉÄÜËð»µ»ò²»¼æÈÝ£¬É¾³ý¾ÉÊý¾Ý¿â
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] Êý¾Ý¿âÁ¬½ÓÊ§°Ü£¬É¾³ý¾ÉÊý¾Ý¿â: {dbFilePath}, ´íÎó: {ex.Message}");
+                                // ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ð»µ»ò²»¼ï¿½ï¿½Ý£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
+                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½Ê§ï¿½Ü£ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½: {dbFilePath}, ï¿½ï¿½ï¿½ï¿½: {ex.Message}");
                                 File.Delete(dbFilePath);
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¾ÉÊý¾Ý¿âÒÑÉ¾³ý");
+                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½É¾ï¿½ï¿½");
                             }
                         }
                     }
@@ -83,8 +84,8 @@ namespace ExcelXpoExchange.Win
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ¼ì²éÊý¾Ý¿â¼æÈÝÐÔÊ±·¢Éú´íÎó: {ex.Message}");
-                // ºöÂÔ´íÎó£¬¼ÌÐøÆô¶¯Ó¦ÓÃ³ÌÐò
+                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½: {ex.Message}");
+                // ï¿½ï¿½ï¿½Ô´ï¿½ï¿½ó£¬¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó¦ï¿½Ã³ï¿½ï¿½ï¿½
             }
         }
         
@@ -134,7 +135,7 @@ namespace ExcelXpoExchange.Win
 #endif
             ArgumentNullException.ThrowIfNull(connectionString);
             
-            // ¼ì²éÊý¾Ý¿â¼æÈÝÐÔ£¬Èç¹û²»¼æÈÝÔòÉ¾³ý¾ÉÊý¾Ý¿â
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½ï¿½ï¿½ï¿½ï¿½Ô£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ý¿ï¿½
             CheckAndDeleteIncompatibleDatabase(connectionString);
             
             var winApplication = ApplicationBuilder.BuildApplication(connectionString);

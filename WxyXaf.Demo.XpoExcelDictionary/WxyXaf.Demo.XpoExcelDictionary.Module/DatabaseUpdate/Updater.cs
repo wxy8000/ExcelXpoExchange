@@ -7,7 +7,7 @@ using DevExpress.Persistent.BaseImpl;
 using DevExpress.Xpo;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ExcelXpoExchange.Module.DatabaseUpdate
+namespace WxyXaf.Demo.XpoExcelDictionary.Module.DatabaseUpdate
 {
     // For more typical usage scenarios, be sure to check out https://docs.devexpress.com/eXpressAppFramework/DevExpress.ExpressApp.Updating.ModuleUpdater
     public class Updater : ModuleUpdater

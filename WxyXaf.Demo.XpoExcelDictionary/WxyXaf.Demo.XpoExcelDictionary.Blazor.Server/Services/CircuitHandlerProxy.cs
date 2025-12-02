@@ -1,7 +1,7 @@
 using DevExpress.ExpressApp.Blazor.Services;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 
-namespace ExcelXpoExchange.Blazor.Server.Services
+namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.Services
 {
     internal class CircuitHandlerProxy : CircuitHandler
     {

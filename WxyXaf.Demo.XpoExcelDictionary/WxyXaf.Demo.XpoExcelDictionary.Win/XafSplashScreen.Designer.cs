@@ -1,4 +1,4 @@
-namespace ExcelXpoExchange.Win
+namespace WxyXaf.Demo.XpoExcelDictionary.Win
 {
     partial class XafSplashScreen
     {

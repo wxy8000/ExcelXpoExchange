@@ -8,18 +8,16 @@ using DevExpress.ExpressApp.Model.Core;
 using DevExpress.ExpressApp.Model.DomainLogics;
 using DevExpress.ExpressApp.Model.NodeGenerators;
 using DevExpress.ExpressApp.Updating;
+using DevExpress.Persistent.BaseImpl;
 
-namespace ExcelXpoExchange.Win
+namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
 {
-    [ToolboxItemFilter("Xaf.Platform.Win")]
+    [ToolboxItemFilter("Xaf.Platform.Blazor")]
     // For more typical usage scenarios, be sure to check out https://docs.devexpress.com/eXpressAppFramework/DevExpress.ExpressApp.ModuleBase.
-    public sealed class ExcelXpoExchangeWinModule : ModuleBase
+    public sealed class ExcelXpoExchangeBlazorModule : ModuleBase
     {
-        public ExcelXpoExchangeWinModule()
+        public ExcelXpoExchangeBlazorModule()
         {
-            DevExpress.ExpressApp.Editors.FormattingProvider.UseMaskSettings = true;
-            // 显式注册WinForms平台特定的控制器
-            AdditionalControllerTypes.Add(typeof(Controllers.WinExcelImportExportViewController));
         }
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)
         {

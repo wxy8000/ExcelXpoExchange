@@ -8,7 +8,7 @@ using DevExpress.Utils.Drawing;
 using DevExpress.Utils.Svg;
 using DevExpress.XtraSplashScreen;
 
-namespace ExcelXpoExchange.Win
+namespace WxyXaf.Demo.XpoExcelDictionary.Win
 {
     public partial class XafSplashScreen : SplashScreen
     {

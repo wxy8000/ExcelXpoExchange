@@ -10,10 +10,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.JSInterop;
 using WxyXaf.XpoExcel;
 
-namespace YourBlazorProject.Controllers
+namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.Controllers
 {
     /// <summary>
-    /// Blazor°æÍ¨ÓÃExcelµ¼Èëµ¼³ö¿ØÖÆÆ÷
+    /// Blazorï¿½ï¿½Í¨ï¿½ï¿½Excelï¿½ï¿½ï¿½ëµ¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     /// </summary>
     public class BlazorExcelImportExportViewController : ExcelImportExportViewController
     {
@@ -21,13 +21,13 @@ namespace YourBlazorProject.Controllers
         private IJSRuntime jsRuntime;
 
         /// <summary>
-        /// ÔÚ¿ØÖÆÆ÷±»¼¤»îÊ±µ÷ÓÃ£¬´ËÊ±ApplicationÊôĞÔÒÑ¾­±»³õÊ¼»¯
+        /// ï¿½Ú¿ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ê±ï¿½ï¿½ï¿½Ã£ï¿½ï¿½ï¿½Ê±Applicationï¿½ï¿½ï¿½ï¿½ï¿½Ñ¾ï¿½ï¿½ï¿½ï¿½ï¿½Ê¼ï¿½ï¿½
         /// </summary>
         protected override void OnActivated()
         {
             base.OnActivated();
 
-            // ´Ó·şÎñÌá¹©³ÌĞò»ñÈ¡ËùĞè·şÎñ
+            // ï¿½Ó·ï¿½ï¿½ï¿½ï¿½á¹©ï¿½ï¿½ï¿½ï¿½ï¿½È¡ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
             if (Application != null && Application.ServiceProvider != null)
             {
                 navigationManager = Application.ServiceProvider.GetService<NavigationManager>();
@@ -36,14 +36,14 @@ namespace YourBlazorProject.Controllers
         }
 
         /// <summary>
-        /// Ö´ĞĞµ¼Èë²Ù×÷£¬ÊµÏÖBlazorÆ½Ì¨µÄExcelµ¼Èë¹¦ÄÜ
+        /// Ö´ï¿½Ğµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½BlazorÆ½Ì¨ï¿½ï¿½Excelï¿½ï¿½ï¿½ë¹¦ï¿½ï¿½
         /// </summary>
-        /// <param name="e">ÊÂ¼ş²ÎÊı</param>
+        /// <param name="e">ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½</param>
         protected override void ExecuteImportAction(SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // Ê¹ÓÃµ¼º½µ½×¨ÃÅµÄµ¼ÈëÒ³Ãæ£¬´«µİµ±Ç°¶ÔÏóÀàĞÍµÄÃû³Æ×÷Îª²ÎÊı
+                // Ê¹ï¿½Ãµï¿½ï¿½ï¿½ï¿½ï¿½×¨ï¿½ÅµÄµï¿½ï¿½ï¿½Ò³ï¿½æ£¬ï¿½ï¿½ï¿½İµï¿½Ç°ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Íµï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îªï¿½ï¿½ï¿½ï¿½
                 if (navigationManager != null)
                 {
                     var objectTypeName = ObjectType.FullName;
@@ -52,69 +52,69 @@ namespace YourBlazorProject.Controllers
                 else
                 {
                     Application.ShowViewStrategy.ShowMessage(
-                        "Blazor°æµ¼Èë¹¦ÄÜĞèÒª·ÃÎÊ×¨ÃÅµÄÒ³Ãæ£¬\nÇëÔÚä¯ÀÀÆ÷µØÖ·À¸ÖĞÊäÈë£º/import-excel-dialog",
+                        "Blazorå¹³å°å¯¼å…¥åŠŸèƒ½éœ€è¦ä½¿ç”¨ä¸“é—¨çš„é¡µé¢\nè¯·è®¿é—®ä»¥ä¸‹åœ°å€è¿›è¡Œå¯¼å…¥ï¼š/import-excel-dialog",
                         InformationType.Info
                     );
                 }
             }
             catch (Exception ex)
             {
-                Application.ShowViewStrategy.ShowMessage($"µ¼ÈëExcelÊ§°Ü£¬{ex.Message}", InformationType.Error);
+                Application.ShowViewStrategy.ShowMessage($"å¯¼å…¥Excelå¤±è´¥ï¼š{ex.Message}", InformationType.Error);
             }
         }
 
         /// <summary>
-        /// ÖØĞ´µ¼³ö°´Å¥µã»÷ÊÂ¼ş£¬ÊµÏÖBlazorÆ½Ì¨µÄExcelµ¼³ö¹¦ÄÜ
+        /// ï¿½ï¿½Ğ´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Å¥ï¿½ï¿½ï¿½ï¿½Â¼ï¿½ï¿½ï¿½Êµï¿½ï¿½BlazorÆ½Ì¨ï¿½ï¿½Excelï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
         /// </summary>
-        /// <param name="sender">ÊÂ¼ş·¢ËÍÕß</param>
-        /// <param name="e">ÊÂ¼ş²ÎÊı</param>
+        /// <param name="sender">ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½</param>
+        /// <param name="e">ï¿½Â¼ï¿½ï¿½ï¿½ï¿½ï¿½</param>
         protected override void ExportAction_Execute(object sender, SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // Ê¹ÓÃXpoExcelHelperµ¼³öÊı¾İ
+                // Ê¹ï¿½ï¿½XpoExcelHelperï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 var excelHelper = new XpoExcelHelper(Application, null);
                 var exportOptions = ExcelImportExportAttribute?.ExportOptions ?? new XpoExcelExportOptions();
 
-                // µ¼³öÊı¾İµ½ÄÚ´æÁ÷
+                // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İµï¿½ï¿½Ú´ï¿½ï¿½ï¿½
                 var exportMethod = typeof(XpoExcelHelper).GetMethod("ExportToExcelStream", new[] { typeof(CriteriaOperator), typeof(XpoExcelExportOptions) });
                 if (exportMethod == null)
                 {
-                    throw new InvalidOperationException("ÎŞ·¨ÕÒµ½ExportToExcelStream·½·¨");
+                    throw new InvalidOperationException("ï¿½Ş·ï¿½ï¿½Òµï¿½ExportToExcelStreamï¿½ï¿½ï¿½ï¿½");
                 }
 
                 var genericExportMethod = exportMethod.MakeGenericMethod(ObjectType);
                 var stream = (MemoryStream)genericExportMethod.Invoke(excelHelper, new object[] { null, exportOptions });
 
-                // ½«ÄÚ´æÁ÷×ª»»Îª×Ö½ÚÊı×é
+                // ï¿½ï¿½ï¿½Ú´ï¿½ï¿½ï¿½×ªï¿½ï¿½Îªï¿½Ö½ï¿½ï¿½ï¿½ï¿½ï¿½
                 stream.Position = 0;
                 var bytes = stream.ToArray();
 
-                // Ê¹ÓÃJavaScript»¥²Ù×÷ÏÂÔØÎÄ¼ş
+                // Ê¹ï¿½ï¿½JavaScriptï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½
                 if (jsRuntime != null)
                 {
-                    var fileName = $"{ObjectType.Name}_µ¼³ö_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+                    var fileName = $"{ObjectType.Name}_å¯¼å‡º_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
                     jsRuntime.InvokeVoidAsync("downloadFile", fileName, bytes);
 
-                    // ÏÔÊ¾³É¹¦ÏûÏ¢
+                    // ï¿½ï¿½Ê¾ï¿½É¹ï¿½ï¿½ï¿½Ï¢
                     Application.ShowViewStrategy.ShowMessage(
-                        $"Êı¾İÒÑ³É¹¦µ¼³ö²¢ÏÂÔØ",
+                        $"æ•°æ®å·²æˆåŠŸå¯¼å‡º",
                         InformationType.Success
                     );
                 }
                 else
                 {
                     Application.ShowViewStrategy.ShowMessage(
-                        "ÎŞ·¨»ñÈ¡IJSRuntime·şÎñ£¬µ¼³öÊ§°Ü",
+                        "æ— æ³•è·å–IJSRuntimeæœåŠ¡ï¼Œå¯¼å‡ºå¤±è´¥",
                         InformationType.Error
                     );
                 }
             }
             catch (Exception ex)
             {
-                // ÏÔÊ¾´íÎóÏûÏ¢
+                // ï¿½ï¿½Ê¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
                 Application.ShowViewStrategy.ShowMessage(
-                    $"µ¼³öÊ§°Ü£º{ex.Message}",
+                    $"å¯¼å‡ºå¤±è´¥ï¼š{ex.Message}",
                     InformationType.Error
                 );
             }

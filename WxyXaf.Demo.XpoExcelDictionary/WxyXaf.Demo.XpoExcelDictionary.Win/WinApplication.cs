@@ -6,16 +6,16 @@ using DevExpress.ExpressApp.Win;
 using DevExpress.ExpressApp.Win.Utils;
 using DevExpress.ExpressApp.Xpo;
 
-namespace ExcelXpoExchange.Win
+namespace WxyXaf.Demo.XpoExcelDictionary.Win
 {
     // For more typical usage scenarios, be sure to check out https://docs.devexpress.com/eXpressAppFramework/DevExpress.ExpressApp.Win.WinApplication._members
     public class ExcelXpoExchangeWindowsFormsApplication : WinApplication
     {
         public ExcelXpoExchangeWindowsFormsApplication()
         {
-            SplashScreen = new DXSplashScreen(typeof(XafSplashScreen), new DefaultOverlayFormOptions());
+            SplashScreen = new DXSplashScreen(typeof(WxyXaf.Demo.XpoExcelDictionary.Win.XafSplashScreen), new DefaultOverlayFormOptions());
             ApplicationName = "ExcelXpoExchange";
-            // Ê¹ÓÃModuleInfoÀ´¼ì²é¼æÈİĞÔ£¬ÕâÊÇDevExpressÍÆ¼öµÄ·½Ê½
+            // ä½¿ç”¨ModuleInfoæ¥å­˜å‚¨ç‰ˆæœ¬ä¿¡æ¯ï¼Œéµå¾ªDevExpresså®˜æ–¹çš„æ–¹å¼
             CheckCompatibilityType = DevExpress.ExpressApp.CheckCompatibilityType.ModuleInfo;
             UseOldTemplates = false;
             DatabaseVersionMismatch += ExcelXpoExchangeWindowsFormsApplication_DatabaseVersionMismatch;
@@ -31,7 +31,7 @@ namespace ExcelXpoExchange.Win
         }
         void ExcelXpoExchangeWindowsFormsApplication_DatabaseVersionMismatch(object sender, DevExpress.ExpressApp.DatabaseVersionMismatchEventArgs e)
         {
-            // ÔÚËùÓĞÇé¿öÏÂ¶¼×Ô¶¯¸üĞÂÊı¾İ¿â£¬±ÜÃâÅ×³ö´íÎó
+            // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â¶ï¿½ï¿½Ô¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½İ¿â£¬ï¿½ï¿½ï¿½ï¿½ï¿½×³ï¿½ï¿½ï¿½ï¿½ï¿½
             e.Updater.Update();
             e.Handled = true;
         }
