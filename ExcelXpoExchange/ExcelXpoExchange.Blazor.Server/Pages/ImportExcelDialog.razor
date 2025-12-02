@@ -374,118 +374,114 @@ using WxyXpoExcel
     }
 
     private async Task ImportData()
-    {
-        if (selectedFile == null)
         {
-            importResult = "请先选择Excel文件";
-            isSuccess = false;
-            return;
-        }
-
-        if (objectType == null)
-        {
-            importResult = "无法获取对象类型";
-            isSuccess = false;
-            return;
-        }
-
-        isImporting = true;
-        importResult = string.Empty;
-
-        try
-        {
-            // 1. 先将异步流转换为字节数组
-            using var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-            using var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream);
-            memoryStream.Position = 0;
-
-            // 2. 使用Task.Run将导入操作放在后台线程执行
-            await Task.Run(() =>
+            if (selectedFile == null)
             {
-                // 获取应用程序实例
-                var application = XafApplicationProvider.GetApplication();
-                if (application == null)
-                {
-                    importResult = "无法获取应用程序实例";
-                    isSuccess = false;
-                    return;
-                }
+                importResult = "请先选择Excel文件";
+                isSuccess = false;
+                return;
+            }
 
-                // 创建XpoExcelHelper实例，并注册DataDictionaryItemConverter
-                var platformService = ServiceProvider.GetService<IPlatformService>();
-                var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
-                var excelHelper = new XpoExcelHelper(application, platformService, new[] { dataDictionaryItemConverter });
+            if (objectType == null)
+            {
+                importResult = "无法获取对象类型";
+                isSuccess = false;
+                return;
+            }
 
-                // 保存文件到临时位置
-                string tempFilePath = Path.GetTempFileName() + ".xlsx";
-                using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write))
-                {
-                    memoryStream.Position = 0;
-                    memoryStream.CopyTo(tempFileStream);
-                }
+            isImporting = true;
+            importResult = string.Empty;
+            ImportResult result = null;
 
-                try
+            try
+            {
+                // 1. 先将异步流转换为字节数组
+                using var fileStream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+                using var memoryStream = new MemoryStream();
+                await fileStream.CopyToAsync(memoryStream);
+                memoryStream.Position = 0;
+
+                // 2. 使用Task.Run将导入操作放在后台线程执行，但返回结果，不在后台线程更新UI
+                result = await Task.Run(() =>
                 {
-                    // 执行导入
-                    var importOptions = new XpoExcelImportOptions
+                    // 获取应用程序实例
+                    var application = XafApplicationProvider.GetApplication();
+                    if (application == null)
                     {
-                        Mode = selectedImportMode switch
+                        throw new InvalidOperationException("无法获取应用程序实例");
+                    }
+
+                    // 创建XpoExcelHelper实例，并注册DataDictionaryItemConverter
+                    var platformService = ServiceProvider.GetService<IPlatformService>();
+                    var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
+                    var excelHelper = new XpoExcelHelper(application, platformService, new[] { dataDictionaryItemConverter });
+
+                    // 保存文件到临时位置
+                    string tempFilePath = Path.GetTempFileName() + ".xlsx";
+                    using (var tempFileStream = new FileStream(tempFilePath, FileMode.Create, FileAccess.Write))
+                    {
+                        memoryStream.Position = 0;
+                        memoryStream.CopyTo(tempFileStream);
+                    }
+
+                    try
+                    {
+                        // 执行导入
+                        var importOptions = new XpoExcelImportOptions
                         {
-                            "CreateOnly" => ImportMode.CreateOnly,
-                            "UpdateOnly" => ImportMode.UpdateOnly,
-                            "CreateOrUpdate" => ImportMode.CreateAndUpdate,
-                            "Replace" => ImportMode.DeleteAndUpdate,
-                            _ => ImportMode.CreateAndUpdate
-                        },
-                        StopOnError = false
-                    };
+                            Mode = selectedImportMode switch
+                            {
+                                "CreateOnly" => ImportMode.CreateOnly,
+                                "UpdateOnly" => ImportMode.UpdateOnly,
+                                "CreateOrUpdate" => ImportMode.CreateAndUpdate,
+                                "Replace" => ImportMode.DeleteAndUpdate,
+                                _ => ImportMode.CreateAndUpdate
+                            },
+                            StopOnError = false
+                        };
 
-                    // 使用反射调用泛型方法
-                    var importMethod = typeof(XpoExcelHelper).GetMethod("ImportFromExcel", new[] { typeof(string), typeof(XpoExcelImportOptions) });
-                    if (importMethod == null)
-                    {
-                        importResult = "无法找到ImportFromExcel方法";
-                        isSuccess = false;
-                        return;
+                        // 使用反射调用泛型方法
+                        var importMethod = typeof(XpoExcelHelper).GetMethod("ImportFromExcel", new[] { typeof(string), typeof(XpoExcelImportOptions) });
+                        if (importMethod == null)
+                        {
+                            throw new InvalidOperationException("无法找到ImportFromExcel方法");
+                        }
+
+                        var genericImportMethod = importMethod.MakeGenericMethod(objectType);
+                        return (ImportResult)genericImportMethod.Invoke(excelHelper, new object[] { tempFilePath, importOptions });
                     }
-
-                    var genericImportMethod = importMethod.MakeGenericMethod(objectType);
-                    var result = (ImportResult)genericImportMethod.Invoke(excelHelper, new object[] { tempFilePath, importOptions });
-
-                    // 处理导入结果
-                    importResult = result.HasErrors
-                        ? $"导入失败，成功{result.SuccessCount}条，失败{result.FailureCount}条，错误信息：{string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage))}"
-                        : $"导入成功，共{result.SuccessCount}条记录";
-                    isSuccess = !result.HasErrors;
-                }
-                finally
-                {
-                    // 删除临时文件
-                    if (File.Exists(tempFilePath))
+                    finally
                     {
-                        File.Delete(tempFilePath);
+                        // 删除临时文件
+                        if (File.Exists(tempFilePath))
+                        {
+                            File.Delete(tempFilePath);
+                        }
                     }
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            importResult = $"导入失败：{ex.Message}{Environment.NewLine}{ex.StackTrace}";
-            isSuccess = false;
-        }
-        finally
-        {
-            isImporting = false;
+                });
 
-            // 导入完成后，等待2秒让用户看到结果，然后自动返回列表视图
-            if (isSuccess)
+                // 3. 在主线程更新UI状态
+                importResult = result.HasErrors
+                    ? $"导入失败，成功{result.SuccessCount}条，失败{result.FailureCount}条，错误信息：{string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage))}"
+                    : $"导入成功，共{result.SuccessCount}条记录";
+                isSuccess = !result.HasErrors;
+            }
+            catch (Exception ex)
             {
-                await Task.Delay(2000);
+                // 在主线程更新UI状态
+                importResult = $"导入失败：{ex.Message}{Environment.NewLine}{ex.StackTrace}";
+                isSuccess = false;
+            }
+            finally
+            {
+                isImporting = false;
+
+                // 导入完成后，无论成功还是失败，都等待3秒让用户看到结果
+                // 然后自动返回列表视图
+                await Task.Delay(3000);
                 NavigationManager.NavigateTo($"/{listViewId}");
             }
         }
-    }
 
     private void Cancel()
     {

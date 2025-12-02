@@ -919,7 +919,7 @@ namespace WxyXpoExcel
                                 if (obj == null)
                                 {
                                     Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到现有对象，跳过更新");
-                                    result.FailureCount++;
+                                    // 不要递增FailureCount，因为这不是失败，而是预期的跳过
                                     continue;
                                 }
                                 Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 找到现有对象进行更新");
@@ -1007,9 +1007,10 @@ namespace WxyXpoExcel
                                                 shouldCheckUniqueness = false;
                                                 break;
                                             case ImportMode.CreateAndUpdate:
-                                                // 如果找到了现有记录，要更新它，不需要检查唯一性
+                                                // 如果找到了现有记录，要更新它，需要检查新值是否与其他记录冲突
                                                 // 如果没有找到，要创建新记录，需要检查唯一性
-                                                shouldCheckUniqueness = (existingObject == null);
+                                                // 但不应该与自身冲突
+                                                shouldCheckUniqueness = true;
                                                 break;
                                             case ImportMode.DeleteAndUpdate:
                                                 // 先删除后创建，不需要检查唯一性
@@ -1019,57 +1020,59 @@ namespace WxyXpoExcel
                                         
                                         if (shouldCheckUniqueness)
                                         {
+                                            // 检查是否存在重复值
+                                            bool isDuplicate = false;
+                                            
                                             // 1. 检查数据库中是否已存在相同值
-                                            if (existingObject != null)
+                                            if (existingObject != null && existingObject != obj)
+                                            {
+                                                isDuplicate = true;
+                                            }
+                                            
+                                            // 2. 如果数据库中没有重复，检查当前对象空间中是否已存在相同值（未提交到数据库的对象）
+                                            if (!isDuplicate)
+                                            {
+                                                var session = objectSpace.Session;
+                                                foreach (var existingObjectInSession in session.GetObjectsToSave())
+                                                {
+                                                    if (existingObjectInSession.GetType() == obj.GetType() && existingObjectInSession != obj)
+                                                    {
+                                                        // 将existingObjectInSession转换为XPBaseObject类型，然后才能调用GetMemberValue方法
+                                                        var xpBaseObject = existingObjectInSession as XPBaseObject;
+                                                        if (xpBaseObject != null)
+                                                        {
+                                                            var existingValue = xpBaseObject.GetMemberValue(member.Name);
+                                                            if (Equals(existingValue, value))
+                                                            {
+                                                                isDuplicate = true;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // 处理重复值
+                                            if (isDuplicate)
                                             {
                                                 if (options.Mode == ImportMode.CreateOnly)
                                                 {
                                                     // CreateOnly模式：如果记录已存在，跳过该记录
                                                     Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段 '{member.Name}' 的值 '{value}' 已存在，跳过该记录");
-                                                    // 设置rowHasError为true，跳过当前记录
-                                                    rowHasError = true;
-                                                    result.FailureCount++;
-                                                    // 使用break跳出循环，而不是return，因为函数返回类型是void
-                                                    break;
+                                                    // 如果对象是新创建的，从objectSpace中删除，避免空记录被保存
+                                                    if (isNewObject)
+                                                    {
+                                                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除新创建的重复对象，避免空记录");
+                                                        objectSpace.Delete(obj);
+                                                    }
+                                                    // 使用goto跳过当前记录，但不设置rowHasError为true
+                                                    // 这样在SkipRecord标签处，rowHasError仍然为false，不会增加FailureCount
+                                                    goto SkipRecord;
                                                 }
                                                 else
                                                 {
                                                     // 其他模式：抛出异常
                                                     throw new InvalidOperationException($"字段 '{member.Name}' 的值 '{value}' 已存在，要求唯一");
-                                                }
-                                            }
-                                            
-                                            // 2. 检查当前对象空间中是否已存在相同值（未提交到数据库的对象）
-                                            // 获取当前会话中所有已加载或已创建的对象
-                                            var session = objectSpace.Session;
-                                            foreach (var existingObjectInSession in session.GetObjectsToSave())
-                                            {
-                                                if (existingObjectInSession.GetType() == obj.GetType() && existingObjectInSession != obj)
-                                                {
-                                                    // 将existingObjectInSession转换为XPBaseObject类型，然后才能调用GetMemberValue方法
-                                                    var xpBaseObject = existingObjectInSession as XPBaseObject;
-                                                    if (xpBaseObject != null)
-                                                    {
-                                                        var existingValue = xpBaseObject.GetMemberValue(member.Name);
-                                                        if (Equals(existingValue, value))
-                                                        {
-                                                            if (options.Mode == ImportMode.CreateOnly)
-                                                            {
-                                                                // CreateOnly模式：如果记录已存在，跳过该记录
-                                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段 '{member.Name}' 的值 '{value}' 已存在，跳过该记录");
-                                                                // 设置rowHasError为true，跳过当前记录
-                                                                rowHasError = true;
-                                                                result.FailureCount++;
-                                                                // 使用break跳出循环，而不是return，因为函数返回类型是void
-                                                                break;
-                                                            }
-                                                            else
-                                                            {
-                                                                // 其他模式：抛出异常
-                                                                throw new InvalidOperationException($"字段 '{member.Name}' 的值 '{value}' 已存在，要求唯一");
-                                                            }
-                                                        }
-                                                    }
                                                 }
                                             }
                                         }
@@ -1095,6 +1098,8 @@ namespace WxyXpoExcel
                                 Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 单元格 {columnIndex} 为空，跳过字段: {member.Name}");
                             }
                         }
+                        
+                        SkipRecord: // 跳过记录的标签
                         
                         Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行填充了 {filledFieldCount} 个字段");
                         
@@ -1196,7 +1201,8 @@ namespace WxyXpoExcel
                             var keyValue = ConvertCellValue(cell, keyMapping.Value, objectSpace);
                             Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
                             
-                            var criteria = new BinaryOperator(options.KeyMember, keyValue?.ToString() ?? string.Empty);
+                            // 直接使用keyValue作为查询值，不转换为字符串，避免类型不匹配
+                            var criteria = new BinaryOperator(options.KeyMember, keyValue);
                             var result = objectSpace.FindObject<T>(criteria);
                             
                             if (result != null)
@@ -1261,11 +1267,20 @@ namespace WxyXpoExcel
             if (keyMember == null)
             {
                 // 尝试使用类型的主键属性
-                // 注意：KeyProperty可能直接返回属性名称字符串而不是对象
                 if (typeInfo.KeyProperty != null)
                 {
-                    // 检查KeyProperty是否为字符串类型
-                    var keyPropertyName = typeInfo.KeyProperty.ToString();
+                    // 根据KeyProperty类型确定主键字段名
+                    string keyPropertyName = string.Empty;
+                    if (typeInfo.KeyProperty is string)
+                    {
+                        keyPropertyName = (string)typeInfo.KeyProperty;
+                    }
+                    else
+                    {
+                        // 作为最后的尝试，使用ToString()
+                        keyPropertyName = typeInfo.KeyProperty.ToString();
+                    }
+                    
                     if (!string.IsNullOrWhiteSpace(keyPropertyName))
                     {
                         keyMember = typeInfo.AllMembers.FirstOrDefault(m => m.Name == keyPropertyName);
@@ -1295,7 +1310,8 @@ namespace WxyXpoExcel
                             var keyValue = ConvertCellValue(cell, keyMapping.Value, objectSpace);
                             Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
                             
-                            var criteria = new BinaryOperator(keyMember.Name, keyValue?.ToString() ?? string.Empty);
+                            // 直接使用keyValue作为查询值，不转换为字符串，避免类型不匹配
+                            var criteria = new BinaryOperator(keyMember.Name, keyValue);
                             var result = objectSpace.FindObject<T>(criteria);
                             
                             if (result != null)
