@@ -239,56 +239,36 @@ namespace WxyXpoExcel
                     // 获取所有DataDictionary对象
                     var objects = objectSpace.GetObjects<T>(criteria);
                     
-                    // 创建字典项的表头样式
-                    ICellStyle headerStyle = worksheet.Workbook.CreateCellStyle();
-                    IFont headerFont = worksheet.Workbook.CreateFont();
-                    headerFont.IsBold = true;
-                    headerFont.Color = IndexedColors.White.Index;
-                    headerStyle.SetFont(headerFont);
-                    headerStyle.FillForegroundColor = IndexedColors.Orange.Index;
-                    headerStyle.FillPattern = FillPattern.SolidForeground;
-                    
                     // 创建字典名称的标题样式
                     ICellStyle titleStyle = worksheet.Workbook.CreateCellStyle();
                     IFont titleFont = worksheet.Workbook.CreateFont();
                     titleFont.IsBold = true;
-                    titleFont.FontHeightInPoints = 14;
                     titleFont.Color = IndexedColors.Black.Index;
                     titleStyle.SetFont(titleFont);
-                    titleStyle.Alignment = HorizontalAlignment.Center;
                     
-                    int currentRowIndex = 0;
+                    // 按列导出所有数据字典，每一列对应一个数据字典
+                    int columnIndex = 0;
                     
-                    // 遍历所有数据字典
+                    // 遍历所有数据字典，每一个字典对应一列
                     foreach (var dataDictionary in objects)
                     {
                         // 使用反射获取字典名称
                         string dictionaryName = (string)dataDictionary.GetMemberValue("Name");
                         
-                        // 1. 写入字典名称作为标题第一行
-                        IRow titleRow = worksheet.CreateRow(currentRowIndex);
-                        ICell titleCell = titleRow.CreateCell(0);
+                        // 1. 写入字典名称作为列的第一行
+                        IRow titleRow = worksheet.GetRow(0);
+                        if (titleRow == null)
+                        {
+                            titleRow = worksheet.CreateRow(0);
+                        }
+                        ICell titleCell = titleRow.CreateCell(columnIndex);
                         titleCell.SetCellValue(dictionaryName);
                         titleCell.CellStyle = titleStyle;
-                        // 合并单元格，使其横跨所有列
-                        worksheet.AddMergedRegion(new NPOI.SS.Util.CellRangeAddress(currentRowIndex, currentRowIndex, 0, 3));
-                        currentRowIndex++;
                         
-                        // 2. 写入字典项的表头
-                        IRow headerRow = worksheet.CreateRow(currentRowIndex);
-                        headerRow.CreateCell(0).SetCellValue("名称");
-                        headerRow.CreateCell(1).SetCellValue("编码");
-                        headerRow.CreateCell(2).SetCellValue("描述");
-                        headerRow.CreateCell(3).SetCellValue("顺序");
+                        // 2. 写入字典项名称，从第二行开始
+                        int rowIndex = 1;
                         
-                        // 设置表头样式
-                        for (int i = 0; i < 4; i++)
-                        {
-                            headerRow.Cells[i].CellStyle = headerStyle;
-                        }
-                        currentRowIndex++;
-                        
-                        // 3. 使用反射获取字典项数据
+                        // 使用反射获取字典项数据
                         var items = (System.Collections.IEnumerable)dataDictionary.GetMemberValue("Items");
                         if (items != null)
                         {
@@ -298,24 +278,29 @@ namespace WxyXpoExcel
                                 var xpItem = item as XPBaseObject;
                                 if (xpItem != null)
                                 {
-                                    IRow dataRow = worksheet.CreateRow(currentRowIndex);
-                                    dataRow.CreateCell(0).SetCellValue((string)xpItem.GetMemberValue("Name"));
-                                    dataRow.CreateCell(1).SetCellValue((string)xpItem.GetMemberValue("Code") ?? string.Empty);
-                                    dataRow.CreateCell(2).SetCellValue((string)xpItem.GetMemberValue("Description") ?? string.Empty);
-                                    dataRow.CreateCell(3).SetCellValue((int)xpItem.GetMemberValue("Order"));
-                                    currentRowIndex++;
+                                    IRow dataRow = worksheet.GetRow(rowIndex);
+                                    if (dataRow == null)
+                                    {
+                                        dataRow = worksheet.CreateRow(rowIndex);
+                                    }
+                                    
+                                    // 只导出字典项的名称，不导出其他属性
+                                    string itemName = (string)xpItem.GetMemberValue("Name");
+                                    dataRow.CreateCell(columnIndex).SetCellValue(itemName);
+                                    
+                                    rowIndex++;
                                 }
                             }
                         }
                         
-                        // 每个字典之间空一行
-                        currentRowIndex++;
+                        // 移动到下一列
+                        columnIndex++;
                     }
                     
                     // 自动调整列宽
                     if (options.AutoFitColumns)
                     {
-                        for (int i = 0; i < 4; i++)
+                        for (int i = 0; i < columnIndex; i++)
                         {
                             worksheet.AutoSizeColumn(i);
                         }
@@ -575,27 +560,304 @@ namespace WxyXpoExcel
                         return result;
                     }
                     
+                    // 特殊处理DataDictionary相关类型（使用反射避免直接引用）
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 实际类型全名: {typeof(T).FullName}");
+                    bool isDataDictionaryType = typeof(T).FullName == "WxyXaf.DataDictionaries.DataDictionary" || typeof(T).Name == "DataDictionary";
+                    bool isDataDictionaryItemType = typeof(T).FullName == "WxyXaf.DataDictionaries.DataDictionaryItem" || typeof(T).Name == "DataDictionaryItem";
+                    
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet isDataDictionaryType: {isDataDictionaryType}, isDataDictionaryItemType: {isDataDictionaryItemType}");
+                    
+                    if (isDataDictionaryType || isDataDictionaryItemType)
+                    {
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始特殊处理DataDictionary相关类型导入");
+                        
+                        // 读取表头行，获取字典名称
+                        var headerRow = worksheet.GetRow(0);
+                        if (headerRow == null)
+                        {
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头为空");
+                            result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头为空" });
+                            return result;
+                        }
+                        
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {headerRow.LastCellNum}");
+                        
+                        // 直接使用当前泛型类型T，因为此时T就是DataDictionary类型
+                        var dataDictionaryType = typeof(T);
+                        var dataDictionaryItemType = Type.GetType("WxyXaf.DataDictionaries.DataDictionaryItem, WxyXaf.DataDictionaries");
+                        
+                        if (dataDictionaryItemType == null)
+                        {
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法获取DataDictionaryItem类型信息");
+                            result.Errors.Add(new ImportError { ErrorMessage = "无法获取DataDictionaryItem类型信息" });
+                            return result;
+                        }
+                        
+                        // 遍历表头中的每个字典名称
+                        for (int columnIndex = 0; columnIndex < headerRow.LastCellNum; columnIndex++)
+                        {
+                            var cell = headerRow.GetCell(columnIndex);
+                            if (cell != null)
+                            {
+                                string dictionaryName = cell.StringCellValue;
+                                if (!string.IsNullOrWhiteSpace(dictionaryName))
+                                {
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理字典: {dictionaryName}");
+                                    
+                                    // 查找或创建DataDictionary对象
+                                    var dataDictionaryCriteria = new BinaryOperator("Name", dictionaryName);
+                                    var dataDictionary = objectSpace.FindObject(dataDictionaryType, dataDictionaryCriteria) as XPBaseObject;
+                                    
+                                    // 根据导入模式处理DataDictionary
+                                    switch (options.Mode)
+                                    {
+                                        case ImportMode.CreateOnly:
+                                            // 仅创建新记录，如果已存在则跳过
+                                            if (dataDictionary == null)
+                                            {
+                                                // 创建新的DataDictionary对象
+                                                dataDictionary = objectSpace.CreateObject(dataDictionaryType) as XPBaseObject;
+                                                dataDictionary.SetMemberValue("Name", dictionaryName);
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
+                                                result.SuccessCount++;
+                                            }
+                                            else
+                                            {
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet DataDictionary已存在，跳过: {dictionaryName}");
+                                            }
+                                            break;
+                                            
+                                        case ImportMode.UpdateOnly:
+                                            // 仅更新现有记录，如果不存在则跳过
+                                            if (dataDictionary != null)
+                                            {
+                                                // 更新DataDictionary对象（目前只处理Name字段）
+                                                dataDictionary.SetMemberValue("Name", dictionaryName);
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 更新现有DataDictionary: {dictionaryName}");
+                                                result.SuccessCount++;
+                                            }
+                                            else
+                                            {
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet DataDictionary不存在，跳过: {dictionaryName}");
+                                            }
+                                            break;
+                                            
+                                        case ImportMode.CreateAndUpdate:
+                                            // 创建新记录并更新现有记录
+                                            if (dataDictionary == null)
+                                            {
+                                                // 创建新的DataDictionary对象
+                                                dataDictionary = objectSpace.CreateObject(dataDictionaryType) as XPBaseObject;
+                                                dataDictionary.SetMemberValue("Name", dictionaryName);
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
+                                            }
+                                            else
+                                            {
+                                                // 更新DataDictionary对象
+                                                dataDictionary.SetMemberValue("Name", dictionaryName);
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 更新现有DataDictionary: {dictionaryName}");
+                                            }
+                                            result.SuccessCount++;
+                                            break;
+                                            
+                                        case ImportMode.DeleteAndUpdate:
+                                            // 删除现有记录并创建新记录
+                                            if (dataDictionary != null)
+                                            {
+                                                // 删除现有对象
+                                                objectSpace.Delete(dataDictionary);
+                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有DataDictionary: {dictionaryName}");
+                                            }
+                                            // 创建新的DataDictionary对象
+                                            dataDictionary = objectSpace.CreateObject(dataDictionaryType) as XPBaseObject;
+                                            dataDictionary.SetMemberValue("Name", dictionaryName);
+                                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
+                                            result.SuccessCount++;
+                                            break;
+                                    }
+                                    
+                                    // 如果是导入DataDictionaryItem类型，直接创建Item对象
+                                    // 如果是导入DataDictionary类型，也需要创建Item对象
+                                    if (isDataDictionaryItemType || isDataDictionaryType)
+                                    {
+                                        // 读取该列的所有行，创建DataDictionaryItem对象
+                                        for (int rowIndex = 1; rowIndex <= worksheet.LastRowNum; rowIndex++)
+                                        {
+                                            var dataRow = worksheet.GetRow(rowIndex);
+                                            if (dataRow != null)
+                                            {
+                                                var itemCell = dataRow.GetCell(columnIndex);
+                                                if (itemCell != null && itemCell.CellType == CellType.String)
+                                                {
+                                                    string itemName = itemCell.StringCellValue;
+                                                    if (!string.IsNullOrWhiteSpace(itemName))
+                                                    {
+                                                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理字典项: {dictionaryName} -> {itemName}");
+                                                        
+                                                        // 检查当前字典下是否已存在同名的字典项
+                                                        var itemCriteria = GroupOperator.And(
+                                                            new BinaryOperator("Name", itemName),
+                                                            new BinaryOperator("DataDictionary", dataDictionary)
+                                                        );
+                                                        var existingItem = objectSpace.FindObject(dataDictionaryItemType, itemCriteria) as XPBaseObject;
+                                                        
+                                                        // 根据导入模式处理字典项
+                                                        switch (options.Mode)
+                                                        {
+                                                            case ImportMode.CreateOnly:
+                                                                // 仅创建新记录，如果已存在则跳过
+                                                                if (existingItem == null)
+                                                                {
+                                                                    // 创建新的DataDictionaryItem对象
+                                                                    var item = objectSpace.CreateObject(dataDictionaryItemType) as XPBaseObject;
+                                                                    
+                                                                    // 设置字段值
+                                                                    item.SetMemberValue("Name", itemName);
+                                                                    item.SetMemberValue("DataDictionary", dataDictionary);
+                                                                    
+                                                                    result.SuccessCount++;
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
+                                                                }
+                                                                else
+                                                                {
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字典项已存在，跳过: {dictionaryName} -> {itemName}");
+                                                                }
+                                                                break;
+                                                                
+                                                            case ImportMode.UpdateOnly:
+                                                                // 仅更新现有记录，如果不存在则跳过
+                                                                if (existingItem != null)
+                                                                {
+                                                                    // 更新字典项
+                                                                    existingItem.SetMemberValue("Name", itemName);
+                                                                    existingItem.SetMemberValue("DataDictionary", dataDictionary);
+                                                                    
+                                                                    result.SuccessCount++;
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功更新DataDictionaryItem: {itemName}");
+                                                                }
+                                                                else
+                                                                {
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字典项不存在，跳过: {dictionaryName} -> {itemName}");
+                                                                }
+                                                                break;
+                                                                
+                                                            case ImportMode.CreateAndUpdate:
+                                                                // 创建新记录并更新现有记录
+                                                                if (existingItem == null)
+                                                                {
+                                                                    // 创建新的DataDictionaryItem对象
+                                                                    var item = objectSpace.CreateObject(dataDictionaryItemType) as XPBaseObject;
+                                                                    
+                                                                    // 设置字段值
+                                                                    item.SetMemberValue("Name", itemName);
+                                                                    item.SetMemberValue("DataDictionary", dataDictionary);
+                                                                    
+                                                                    result.SuccessCount++;
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
+                                                                }
+                                                                else
+                                                                {
+                                                                    // 更新字典项
+                                                                    existingItem.SetMemberValue("Name", itemName);
+                                                                    existingItem.SetMemberValue("DataDictionary", dataDictionary);
+                                                                    
+                                                                    result.SuccessCount++;
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功更新DataDictionaryItem: {itemName}");
+                                                                }
+                                                                break;
+                                                                
+                                                            case ImportMode.DeleteAndUpdate:
+                                                                // 删除现有记录并创建新记录
+                                                                if (existingItem != null)
+                                                                {
+                                                                    // 删除现有字典项
+                                                                    objectSpace.Delete(existingItem);
+                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有DataDictionaryItem: {itemName}");
+                                                                }
+                                                                
+                                                                // 创建新的DataDictionaryItem对象
+                                                                var newItem = objectSpace.CreateObject(dataDictionaryItemType) as XPBaseObject;
+                                                                
+                                                                // 设置字段值
+                                                                newItem.SetMemberValue("Name", itemName);
+                                                                newItem.SetMemberValue("DataDictionary", dataDictionary);
+                                                                
+                                                                result.SuccessCount++;
+                                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
+                                                                break;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // 提交事务 - 只有当没有失败记录时才提交
+                        if (result.FailureCount == 0 && result.Errors.Count == 0)
+                        {
+                            if (result.SuccessCount > 0)
+                            {
+                                try
+                                {
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
+                                    objectSpace.CommitChanges();
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
+                                }
+                                catch (Exception commitEx)
+                                {
+                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
+                                    result.Errors.Add(new ImportError
+                                    {
+                                        RowIndex = -1,
+                                        FieldName = "Commit",
+                                        ErrorMessage = $"提交事务失败: {commitEx.Message}"
+                                    });
+                                    objectSpace.Rollback();
+                                }
+                            }
+                            else
+                            {
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
+                            }
+                        }
+                        else
+                        {
+                            // 有失败记录或错误，回滚所有更改
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 有失败记录或错误，回滚所有更改");
+                            objectSpace.Rollback();
+                            // 重置成功记录计数，因为所有更改都被回滚了
+                            result.SuccessCount = 0;
+                        }
+                        
+                        return result;
+                    }
+                    
                     // 读取表头，建立字段映射
-                    var headerRow = worksheet.GetRow(0);
-                    if (headerRow == null)
+                    var normalHeaderRow = worksheet.GetRow(0);
+                    if (normalHeaderRow == null)
                     {
                         Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头为空");
                         result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头为空" });
                         return result;
                     }
                     
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {headerRow.LastCellNum}");
+                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {normalHeaderRow.LastCellNum}");
                     
                     var fieldMappings = new Dictionary<int, IModelMember>();
-                    for (int c = 0; c < headerRow.LastCellNum; c++)
+                    for (int c = 0; c < normalHeaderRow.LastCellNum; c++)
                     {
-                        var cell = headerRow.GetCell(c);
+                        var cell = normalHeaderRow.GetCell(c);
                         if (cell != null)
                         {
                             var fieldCaption = cell.StringCellValue;
                             Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理表头单元格 {c}: {fieldCaption}");
                             
-                            var member = typeInfo.AllMembers.SingleOrDefault(x => x.Caption == fieldCaption);
+                            // 尝试多种匹配方式
+                            var member = typeInfo.AllMembers.SingleOrDefault(x => x.Caption == fieldCaption) ??
+                                        typeInfo.AllMembers.SingleOrDefault(x => x.Name == fieldCaption);
                             if (member != null)
                             {
                                 fieldMappings.Add(c, member);
@@ -718,33 +980,98 @@ namespace WxyXpoExcel
                                     Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值: {member.Name} = {value?.ToString() ?? "null"}");
                                     
                                     // 检查字段是否要求唯一
-                                    var propertyInfo = member.MemberInfo.MemberTypeInfo.Type.GetProperty(member.Name);
+                                    // 使用member.MemberInfo.Owner.Type获取包含该属性的类类型，而不是属性的类型
+                                    var propertyInfo = member.MemberInfo.Owner.Type.GetProperty(member.Name);
                                     var fieldAttribute = propertyInfo?.GetCustomAttribute<ExcelFieldAttribute>();
                                     if (fieldAttribute != null && fieldAttribute.IsUnique)
                                     {
+                                        // 对于CreateAndUpdate和UpdateOnly模式，只有当要创建新记录时才检查唯一性
+                                        // 当要更新现有记录时，不需要检查唯一性
+                                        bool shouldCheckUniqueness = true;
+                                        
                                         // 构建唯一性查询条件
                                         CriteriaOperator criteria = new BinaryOperator(member.Name, value);
-                                        // 如果是更新模式，排除当前对象
-                                        if (options.Mode == ImportMode.UpdateOnly || options.Mode == ImportMode.CreateAndUpdate)
+                                        
+                                        // 检查数据库中是否已存在相同值
+                                        var existingObject = objectSpace.FindObject(obj.GetType(), criteria);
+                                        
+                                        // 根据导入模式决定是否需要检查唯一性
+                                        switch (options.Mode)
                                         {
-                                            // 获取对象的主键信息（使用XPO ClassInfo）
-                                            var classInfo = objectSpace.Session.GetClassInfo(obj.GetType());
-                                            var keyProperty = classInfo.KeyProperty;
-                                            if (keyProperty != null)
-                                            {
-                                                var keyValue = obj.GetMemberValue(keyProperty.Name);
-                                                criteria = GroupOperator.And(
-                                                    criteria,
-                                                    new BinaryOperator(keyProperty.Name, keyValue, BinaryOperatorType.NotEqual)
-                                                );
-                                            }
+                                            case ImportMode.CreateOnly:
+                                                // 仅创建新记录，必须检查唯一性
+                                                shouldCheckUniqueness = true;
+                                                break;
+                                            case ImportMode.UpdateOnly:
+                                                // 仅更新现有记录，不需要检查唯一性
+                                                shouldCheckUniqueness = false;
+                                                break;
+                                            case ImportMode.CreateAndUpdate:
+                                                // 如果找到了现有记录，要更新它，不需要检查唯一性
+                                                // 如果没有找到，要创建新记录，需要检查唯一性
+                                                shouldCheckUniqueness = (existingObject == null);
+                                                break;
+                                            case ImportMode.DeleteAndUpdate:
+                                                // 先删除后创建，不需要检查唯一性
+                                                shouldCheckUniqueness = false;
+                                                break;
                                         }
                                         
-                                        // 检查是否已存在相同值
-                                        var existingObject = objectSpace.FindObject(obj.GetType(), criteria);
-                                        if (existingObject != null)
+                                        if (shouldCheckUniqueness)
                                         {
-                                            throw new InvalidOperationException($"字段 '{member.Name}' 的值 '{value}' 已存在，要求唯一");
+                                            // 1. 检查数据库中是否已存在相同值
+                                            if (existingObject != null)
+                                            {
+                                                if (options.Mode == ImportMode.CreateOnly)
+                                                {
+                                                    // CreateOnly模式：如果记录已存在，跳过该记录
+                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段 '{member.Name}' 的值 '{value}' 已存在，跳过该记录");
+                                                    // 设置rowHasError为true，跳过当前记录
+                                                    rowHasError = true;
+                                                    result.FailureCount++;
+                                                    // 使用break跳出循环，而不是return，因为函数返回类型是void
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    // 其他模式：抛出异常
+                                                    throw new InvalidOperationException($"字段 '{member.Name}' 的值 '{value}' 已存在，要求唯一");
+                                                }
+                                            }
+                                            
+                                            // 2. 检查当前对象空间中是否已存在相同值（未提交到数据库的对象）
+                                            // 获取当前会话中所有已加载或已创建的对象
+                                            var session = objectSpace.Session;
+                                            foreach (var existingObjectInSession in session.GetObjectsToSave())
+                                            {
+                                                if (existingObjectInSession.GetType() == obj.GetType() && existingObjectInSession != obj)
+                                                {
+                                                    // 将existingObjectInSession转换为XPBaseObject类型，然后才能调用GetMemberValue方法
+                                                    var xpBaseObject = existingObjectInSession as XPBaseObject;
+                                                    if (xpBaseObject != null)
+                                                    {
+                                                        var existingValue = xpBaseObject.GetMemberValue(member.Name);
+                                                        if (Equals(existingValue, value))
+                                                        {
+                                                            if (options.Mode == ImportMode.CreateOnly)
+                                                            {
+                                                                // CreateOnly模式：如果记录已存在，跳过该记录
+                                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段 '{member.Name}' 的值 '{value}' 已存在，跳过该记录");
+                                                                // 设置rowHasError为true，跳过当前记录
+                                                                rowHasError = true;
+                                                                result.FailureCount++;
+                                                                // 使用break跳出循环，而不是return，因为函数返回类型是void
+                                                                break;
+                                                            }
+                                                            else
+                                                            {
+                                                                // 其他模式：抛出异常
+                                                                throw new InvalidOperationException($"字段 '{member.Name}' 的值 '{value}' 已存在，要求唯一");
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                     
@@ -790,31 +1117,42 @@ namespace WxyXpoExcel
                     
                     Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据处理完成，处理行数: {processedRowCount}，成功: {result.SuccessCount}, 失败: {result.FailureCount}");
                     
-                    // 提交事务 - 即使有错误也要提交成功的记录
-                    if (result.SuccessCount > 0)
+                    // 提交事务 - 只有当没有失败记录时才提交
+                    if (result.FailureCount == 0 && result.Errors.Count == 0)
                     {
-                        try
+                        if (result.SuccessCount > 0)
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
-                            objectSpace.CommitChanges();
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
-                        }
-                        catch (Exception commitEx)
-                        {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
-                            // 如果提交失败，记录错误并回滚
-                            result.Errors.Add(new ImportError
+                            try
                             {
-                                RowIndex = -1,
-                                FieldName = "Commit",
-                                ErrorMessage = $"提交事务失败: {commitEx.Message}"
-                            });
-                            objectSpace.Rollback();
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
+                                objectSpace.CommitChanges();
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
+                            }
+                            catch (Exception commitEx)
+                            {
+                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
+                                // 如果提交失败，记录错误并回滚
+                                result.Errors.Add(new ImportError
+                                {
+                                    RowIndex = -1,
+                                    FieldName = "Commit",
+                                    ErrorMessage = $"提交事务失败: {commitEx.Message}"
+                                });
+                                objectSpace.Rollback();
+                            }
+                        }
+                        else
+                        {
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
                         }
                     }
                     else
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
+                        // 有失败记录或错误，回滚所有更改
+                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 有失败记录或错误，回滚所有更改");
+                        objectSpace.Rollback();
+                        // 重置成功记录计数，因为所有更改都被回滚了
+                        result.SuccessCount = 0;
                     }
                 }
             }
@@ -898,6 +1236,28 @@ namespace WxyXpoExcel
                 keyMember = typeInfo.AllMembers.FirstOrDefault(m => m.Name == options.KeyMember);
             }
             
+            // 如果没有指定关键字段，尝试使用IsUnique=true的字段
+            if (keyMember == null)
+            {
+                // 遍历所有成员，查找IsUnique=true的字段
+                foreach (var member in typeInfo.AllMembers)
+                {
+                    // 获取属性信息
+                    var propertyInfo = member.MemberInfo.Owner.Type.GetProperty(member.Name);
+                    if (propertyInfo != null)
+                    {
+                        // 检查是否有ExcelFieldAttribute且IsUnique=true
+                        var fieldAttribute = propertyInfo.GetCustomAttribute<ExcelFieldAttribute>();
+                        if (fieldAttribute != null && fieldAttribute.IsUnique)
+                        {
+                            keyMember = member;
+                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到IsUnique=true的字段: {keyMember.Name}");
+                            break;
+                        }
+                    }
+                }
+            }
+            
             if (keyMember == null)
             {
                 // 尝试使用类型的主键属性
@@ -918,7 +1278,7 @@ namespace WxyXpoExcel
                     keyMember = typeInfo.AllMembers.FirstOrDefault();
                 }
             }
-                            
+            
             if (keyMember != null)
             {
                 Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用默认关键字段: {keyMember.Name}");

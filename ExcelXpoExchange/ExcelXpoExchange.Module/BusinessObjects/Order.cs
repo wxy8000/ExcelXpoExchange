@@ -40,7 +40,7 @@ namespace ExcelXpoExchange.Module.BusinessObjects
         /// 员工ID
         /// </summary>
         [Size(50)]
-        [ExcelField(Caption = "员工ID", Order = 0)]
+        [ExcelField(Caption = "员工ID", Order = 0,IsUnique =true)]
         [VisibleInDetailView(true)]
         [VisibleInListView(true)]
         [VisibleInLookupListView(true)]
