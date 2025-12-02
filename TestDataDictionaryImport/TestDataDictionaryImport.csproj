@@ -22,8 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ExcelXpoExchange\Wxy.Common\Wxy.Common.csproj" />
-    <ProjectReference Include="..\ExcelXpoExchange\WxyXpoExcel\WxyXpoExcel.csproj" />
+    <ProjectReference Include="..\ExcelXpoExchan..\\WxyXaf.Common\\WxyXaf.Common.csproj" />
+    <ProjectReference Include="..\ExcelXpoExchan..\\WxyXaf.XpoExcel\\WxyXaf.XpoExcel.csproj" />
     <ProjectReference Include="..\ExcelXpoExchange\WxyXaf.DataDictionaries\WxyXaf.DataDictionaries.csproj" />
     <ProjectReference Include="..\ExcelXpoExchange\ExcelXpoExchange.Module\ExcelXpoExchange.Module.csproj" />
   </ItemGroup>

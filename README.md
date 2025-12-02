@@ -1,348 +1,383 @@
-# 通用模块NuGet包移植操作指南
+# ExcelXpoExchange 通用模块
 
-## 1. NuGet包概述
+## 项目简�?
 
-### 1.1 包列表
+ExcelXpoExchange 是一个基�?DevExpress XAF (eXpressApp Framework) �?XPO (eXpress Persistent Objects) 的通用模块集合，提供了数据字典管理�?Excel 导入导出功能，旨在简化企业级应用开发�?
 
-| 包名称 | 版本 | 描述 | 依赖关系 |
-|--------|------|------|----------|
-| Wxy.Common | 1.0.0 | 提供共享接口和类型 | DevExpress.ExpressApp, DevExpress.Xpo |
-| WxyXaf.DataDictionaries | 1.0.0 | 提供数据字典管理功能 | Wxy.Common, DevExpress.ExpressApp |
-| WxyXpoExcel | 1.0.0 | 提供XPO对象的Excel导入导出功能 | Wxy.Common, DevExpress.ExpressApp, NPOI |
+## 模块列表
 
-### 1.2 包位置
+| 模块名称 | 命名空间 | 主要功能 |
+|---------|---------|---------|
+| WxyXaf.Common | WxyXaf.Common | 基础通用模块，提供共享接口和类型 |
+| WxyXaf.XpoExcel | WxyXaf.XpoExcel | XPO 对象�?Excel 导入导出功能 |
+| WxyXaf.DataDictionaries | WxyXaf.DataDictionaries | 数据字典管理功能 |
 
-NuGet包生成在以下目录：
+## 安装方法
+
+### 1. NuGet 包安�?
+
+所有模块均已配置为 NuGet 包，可以通过以下方式安装�?
+
+```bash
+dotnet add package WxyXaf.Common
+dotnet add package WxyXaf.XpoExcel
+dotnet add package WxyXaf.DataDictionaries
 ```
-d:\projects\ExcelXpoExchange\ExcelXpoExchange\nupkg\
-```
 
-## 2. 安装NuGet包
+### 2. 源码引用
 
-### 2.1 方式一：使用本地NuGet源
+可以直接引用源码项目�?
 
-#### 步骤1：添加本地NuGet源
-1. 打开 Visual Studio
-2. 选择 "工具" → "NuGet包管理器" → "包管理器设置"
-3. 在 "NuGet包管理器" → "包源" 中，点击 "添加"
-4. 名称：输入 "LocalNuGet"
-5. 源：浏览到 `d:\projects\ExcelXpoExchange\ExcelXpoExchange\nupkg\` 目录
-6. 点击 "更新" → "确定"
+1. 将项目克隆到本地
+2. 在解决方案中添加现有项目
+3. 添加项目引用
 
-#### 步骤2：安装NuGet包
-1. 在新解决方案中，右键点击项目 → "管理NuGet包"
-2. 选择 "LocalNuGet" 包源
-3. 搜索并安装以下包：
-   - Wxy.Common
-   - WxyXaf.DataDictionaries
-   - WxyXpoExcel
-4. 点击 "安装"，接受许可证协议
+## 快速开�?
 
-### 2.2 方式二：直接安装.nupkg文件
+### 1. 添加模块引用
 
-#### 步骤1：复制.nupkg文件
-1. 将 `nupkg` 目录中的.nupkg文件复制到新解决方案的任意目录
-
-#### 步骤2：安装包
-1. 在新解决方案中，右键点击项目 → "管理NuGet包"
-2. 点击 "浏览" → "本地" → "选择文件"
-3. 浏览到复制的.nupkg文件，依次安装三个包
-
-## 3. 配置模块
-
-### 3.1 模块注册
-
-在新解决方案的Module.cs文件中注册模块：
+�?XAF 应用程序�?Module.cs 文件中添加所需模块�?
 
 ```csharp
-using System;
 using DevExpress.ExpressApp;
+using WxyXaf.XpoExcel;
 using WxyXaf.DataDictionaries;
-using WxyXpoExcel;
 
-namespace NewSolution.Module
+public sealed partial class YourModule : ModuleBase
 {
-    public sealed class NewSolutionModule : ModuleBase
+    public YourModule()
     {
-        public NewSolutionModule()
-        {
-            RequiredModuleTypes.Add(typeof(SystemModule.SystemModule));
-            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Objects.BusinessClassLibraryCustomizationModule));
-            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.ConditionalAppearance.ConditionalAppearanceModule));
-            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Validation.ValidationModule));
-            
-            // 注册自定义模块
-            RequiredModuleTypes.Add(typeof(DataDictionariesModule));
-            RequiredModuleTypes.Add(typeof(WxyXpoExcelModule));
-        }
-        // 其他代码...
+        InitializeComponent();
+        
+        // 添加 WxyXaf.XpoExcel 模块
+        RequiredModuleTypes.Add(typeof(WxyXaf.XpoExcelModule));
+        
+        // 添加数据字典模块
+        RequiredModuleTypes.Add(typeof(DataDictionariesModule));
     }
 }
 ```
 
-### 3.2 配置文件设置
+### 2. 配置 Excel 导入导出
 
-在App.config/Web.config中添加以下配置：
-
-```xml
-<appSettings>
-    <!-- 设置日志编码为UTF-8，解决中文乱码问题 -->
-    <add key="eXpressAppFrameworkTraceEncoding" value="UTF-8"/>
-    <!-- 设置日志级别 -->
-    <add key="eXpressAppFrameworkTraceLevel" value="3"/>
-</appSettings>
-```
-
-### 3.3 相关对象转换器注册
-
-在ExcelImportExportViewController中注册DataDictionaryItemConverter：
+在需要支�?Excel 导入导出�?XPO 类上添加 `ExcelImportExport` 特性：
 
 ```csharp
-using System;
-using System.IO;
-using System.Windows.Forms;
-using DevExpress.ExpressApp;
-using DevExpress.ExpressApp.Actions;
-using WxyXpoExcel;
-using WxyXaf.DataDictionaries;
+using WxyXaf.XpoExcel;
 
-namespace NewSolution.Win.Controllers
+[ExcelImportExport]
+public class YourBusinessObject : XPObject
 {
-    public class WinExcelImportExportViewController : ExcelImportExportViewController
-    {
-        protected override void ExecuteImportAction(SimpleActionExecuteEventArgs e)
-        {
-            try
-            {
-                // 显示文件选择对话框
-                using (OpenFileDialog openFileDialog = new OpenFileDialog())
-                {
-                    openFileDialog.Title = "选择Excel文件";
-                    openFileDialog.Filter = "Excel文件 (*.xlsx)|*.xlsx|Excel 97-2003文件 (*.xls)|*.xls";
-                    
-                    if (openFileDialog.ShowDialog() == DialogResult.OK)
-                    {
-                        string filePath = openFileDialog.FileName;
-                        
-                        // 创建XpoExcelHelper实例，并注册DataDictionaryItemConverter
-                        var dataDictionaryItemConverter = new DataDictionaryItemConverter();
-                        var excelHelper = new XpoExcelHelper(Application, null, new[] { dataDictionaryItemConverter });
-                        
-                        // 执行导入操作...
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Application.ShowViewStrategy.ShowMessage(
-                    $"导入失败：{ex.Message}",
-                    InformationType.Error
-                );
-            }
-        }
-        // 其他代码...
-    }
+    // 属性定�?
 }
 ```
 
-## 4. 使用模块功能
+### 3. 使用数据字典
 
-### 4.1 数据字典使用示例
-
-#### 步骤1：在业务对象中使用DataDictionaryAttribute
+为业务对象属性添加数据字典支持：
 
 ```csharp
-using System;
-using DevExpress.Persistent.Base;
-using DevExpress.Persistent.BaseImpl;
-using DevExpress.Xpo;
 using WxyXaf.DataDictionaries;
-using WxyXpoExcel;
 
-namespace NewSolution.Module.BusinessObjects
+public class YourBusinessObject : XPObject
 {
-    [DefaultClassOptions]
-    [ExcelImportExport()]
-    public class Employee : BaseObject
+    [DataDictionary("Department")] // 关联到名�?"Department" 的数据字�?
+    public DataDictionaryItem Department
     {
-        public Employee(Session session)
-            : base(session)
-        {
-        }
-        
-        [Size(50)]
-        [ExcelField(Caption = "员工ID", Order = 0)]
-        public string EmployeeId
-        {
-            get => fEmployeeId;
-            set => SetPropertyValue(nameof(EmployeeId), ref fEmployeeId, value);
-        }
-        string fEmployeeId;
-        
-        [Size(100)]
-        [ExcelField(Caption = "姓名", Order = 1)]
-        public string Name
-        {
-            get => fName;
-            set => SetPropertyValue(nameof(Name), ref fName, value);
-        }
-        string fName;
-        
-        [ExcelField(Caption = "部门", Order = 2)]
-        [DataDictionary("部门")]
-        public DataDictionaryItem Department
-        {
-            get => fDepartment;
-            set => SetPropertyValue(nameof(Department), ref fDepartment, value);
-        }
-        DataDictionaryItem fDepartment;
-        
-        [ExcelField(Caption = "职位", Order = 3)]
-        [DataDictionary("职位")]
-        public DataDictionaryItem Position
-        {
-            get => fPosition;
-            set => SetPropertyValue(nameof(Position), ref fPosition, value);
-        }
-        DataDictionaryItem fPosition;
+        get => GetPropertyValue<DataDictionaryItem>(nameof(Department));
+        set => SetPropertyValue(nameof(Department), value);
     }
 }
 ```
 
-#### 步骤2：运行应用程序，管理数据字典
+## 模块详细使用方法
 
-1. 启动应用程序
-2. 在导航菜单中，找到并打开 "数据字典" 和 "数据字典项"
-3. 创建数据字典（如：部门、职位）
-4. 为每个数据字典添加数据项
+### 1. WxyXaf.Common 模块
 
-### 4.2 Excel导入导出示例
+#### 功能说明
 
-#### 步骤1：使用Excel导入功能
+提供共享接口和类型，是其他模块的基础�?
 
-1. 在导航菜单中，打开需要导入数据的列表视图
-2. 点击 "编辑" → "从Excel导入"
-3. 选择Excel文件，点击 "打开"
-4. 选择导入模式，点击 "确定"
-5. 等待导入完成，查看导入结果
+#### 主要类型
 
-#### 步骤2：使用Excel导出功能
+- **IRelatedObjectConverter**：关联对象转换器接口，用于自定义关联对象的转换逻辑
+- **IPlatformService**：平台服务接口，用于获取平台相关信息
 
-1. 在导航菜单中，打开需要导出数据的列表视图
-2. 点击 "编辑" → "导出到Excel"
-3. 选择保存位置和文件名，点击 "保存"
-4. 等待导出完成，查看Excel文件
+#### 使用示例
 
-## 5. 故障排除
+```csharp
+using WxyXaf.Common;
 
-### 5.1 模块注册失败
+// 实现自定义关联对象转换器
+public class CustomRelatedObjectConverter : IRelatedObjectConverter
+{
+    public bool CanConvert(Type objectType)
+    {
+        return objectType == typeof(YourRelatedObject);
+    }
+    
+    public object Convert(string value, Type objectType, IObjectSpace objectSpace)
+    {
+        // 实现转换逻辑
+        return objectSpace.FindObject<YourRelatedObject>(CriteriaOperator.Parse("Name = ?", value));
+    }
+}
+```
 
-**症状**：应用程序启动时，提示 "无法加载模块"
+### 2. WxyXaf.XpoExcel 模块
 
-**解决方案**：
-1. 检查Module.cs中是否正确注册了所有模块
-2. 确保所有NuGet包版本一致
-3. 检查项目引用是否正确
+#### 功能说明
 
-### 5.2 数据字典导入失败
+提供 XPO 对象�?Excel 导入导出功能，支持多种导入模式和自定义配置�?
 
-**症状**：从Excel导入数据时，数据字典项没有正确关联
+#### 主要特�?
 
-**解决方案**：
-1. 确保DataDictionaryItemConverter已正确注册
-2. 检查Excel文件中的数据字典名称与系统中是否一致
-3. 检查DataDictionaryAttribute是否正确应用
+- **ExcelImportExportAttribute**：标记类支持 Excel 导入导出
+- **ExcelFieldAttribute**：配置字段的导入导出属�?
+- **多种导入模式**：CreateOnly、UpdateOnly、CreateAndUpdate、DeleteAndUpdate
+- **事务处理**：确保导入的原子�?
+- **详细的导入结�?*：包含成功计数、失败计数和错误信息
 
-### 5.3 日志中文乱码
+#### 配置选项
 
-**症状**：eXpressAppFramework.log文件中的中文显示为乱码
+##### ExcelImportExportAttribute
 
-**解决方案**：
-1. 确保配置文件中设置了正确的日志编码：
-   ```xml
-   <add key="eXpressAppFrameworkTraceEncoding" value="UTF-8"/>
-   ```
-2. 使用支持UTF-8编码的文本编辑器查看日志文件
+```csharp
+[ExcelImportExport(ExportOptions = typeof(XpoExcelExportOptions), ImportOptions = typeof(XpoExcelImportOptions))]
+public class YourBusinessObject : XPObject
+{
+    // 属性定�?
+}
+```
 
-### 5.4 依赖项冲突
+##### ExcelFieldAttribute
 
-**症状**：构建时提示依赖项版本冲突
+```csharp
+public class YourBusinessObject : XPObject
+{
+    [ExcelField(Caption = "员工姓名", Order = 1, IsUnique = true)]
+    public string EmployeeName
+    {
+        get => GetPropertyValue<string>(nameof(EmployeeName));
+        set => SetPropertyValue(nameof(EmployeeName), value);
+    }
+    
+    [ExcelField(Include = false)] // 不包含在导入导出�?
+    public string InternalField
+    {
+        get => GetPropertyValue<string>(nameof(InternalField));
+        set => SetPropertyValue(nameof(InternalField), value);
+    }
+}
+```
 
-**解决方案**：
-1. 确保所有包使用相同版本的DevExpress组件
-2. 在app.config中添加绑定重定向：
-   ```xml
-   <runtime>
-       <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
-           <dependentAssembly>
-               <assemblyIdentity name="DevExpress.ExpressApp" publicKeyToken="b88d1754d700e49a" culture="neutral" />
-               <bindingRedirect oldVersion="0.0.0.0-25.1.7.0" newVersion="25.1.7.0" />
-           </dependentAssembly>
-           <!-- 添加其他DevExpress组件的绑定重定向 -->
-       </assemblyBinding>
-   </runtime>
-   ```
+#### 导入模式说明
 
-## 6. 最佳实践
+| 模式名称 | 描述 |
+|---------|------|
+| CreateOnly | 仅创建新记录，跳过已存在的记�?|
+| UpdateOnly | 仅更新现有记录，跳过不存在的记录 |
+| CreateAndUpdate | 创建新记录并更新现有记录（默认模式） |
+| DeleteAndUpdate | 删除现有记录并创建新记录 |
 
-### 6.1 模块设计原则
+#### 使用示例
 
-1. **接口解耦**：模块间通过接口通信，避免直接依赖
-2. **依赖注入**：使用依赖注入管理模块间的依赖关系
-3. **配置驱动**：通过配置文件控制模块行为
-4. **日志完善**：提供详细的日志记录，便于调试
-5. **异常处理**：完善的异常处理机制，提高系统稳定性
+##### 导出数据�?Excel
 
-### 6.2 性能优化
+```csharp
+using WxyXaf.XpoExcel;
 
-1. **批量操作**：Excel导入时使用批量操作，提高性能
-2. **索引优化**：为数据字典相关字段添加索引
-3. **缓存机制**：对频繁访问的数据字典项进行缓存
-4. **延迟加载**：合理使用延迟加载，减少内存占用
+// 在控制器或服务中使用
+var excelHelper = new XpoExcelHelper(Application, platformService);
 
-### 6.3 安全性
+// 导出到文�?
+excelHelper.ExportToExcel<YourBusinessObject>("output.xlsx");
 
-1. **权限控制**：为数据字典管理功能添加权限控制
-2. **输入验证**：对Excel导入数据进行严格验证
-3. **日志审计**：记录数据字典的增删改操作
-4. **防止注入**：使用参数化查询，防止SQL注入
+// 导出到内存流
+var stream = excelHelper.ExportToExcelStream<YourBusinessObject>();
+```
 
-## 7. 版本更新
+##### �?Excel 导入数据
 
-### 7.1 更新NuGet包
+```csharp
+using WxyXaf.XpoExcel;
 
-1. 在原始解决方案中修改代码
-2. 增加项目文件中的版本号：
-   ```xml
-   <Version>1.0.1</Version>
-   ```
-3. 重新构建并生成NuGet包：
-   ```
-   dotnet build --configuration Release
-   dotnet pack --configuration Release
-   ```
-4. 在新解决方案中，更新NuGet包
+// 在控制器或服务中使用
+var excelHelper = new XpoExcelHelper(Application, platformService);
 
-### 7.2 版本兼容
+// 准备导入选项
+var importOptions = new XpoExcelImportOptions
+{
+    Mode = ImportMode.CreateAndUpdate, // 设置导入模式
+    KeyMember = "EmployeeId" // 设置关键字段
+};
 
-- 主版本号：不兼容的API变更
-- 次版本号：向下兼容的功能新增
-- 修订号：向下兼容的问题修复
+// 从文件导�?
+var result = excelHelper.ImportFromExcel<YourBusinessObject>("input.xlsx", importOptions);
 
-## 8. 联系方式
+// 处理导入结果
+if (result.SuccessCount > 0)
+{
+    // 导入成功处理
+}
 
-如有任何问题或建议，请联系：
+if (result.Errors.Count > 0)
+{
+    // 处理错误
+    foreach (var error in result.Errors)
+    {
+        Console.WriteLine($"�?{error.RowIndex}: {error.FieldName} - {error.ErrorMessage}");
+    }
+}
+```
 
+### 3. WxyXaf.DataDictionaries 模块
+
+#### 功能说明
+
+提供数据字典管理功能，允许动态管理业务对象的枚举值�?
+
+#### 主要类型
+
+- **DataDictionary**：数据字典类，包含多个字典项
+- **DataDictionaryItem**：字典项类，包含名称、编码、描述等属�?
+- **DataDictionaryAttribute**：用于关联业务对象属性和数据字典
+
+#### 使用示例
+
+##### 1. 创建数据字典
+
+1. 运行应用程序
+2. 在导航菜单中找到 "数据字典" �?
+3. 创建新的数据字典，例�?"Department"（部门）
+4. 在数据字典中添加字典项，例如 "销售部"�?技术部"�?人力资源�?
+
+##### 2. 关联业务对象属�?
+
+```csharp
+using WxyXaf.DataDictionaries;
+
+public class Employee : XPObject
+{
+    [DataDictionary("Department")] // 关联到名�?"Department" 的数据字�?
+    public DataDictionaryItem Department
+    {
+        get => GetPropertyValue<DataDictionaryItem>(nameof(Department));
+        set => SetPropertyValue(nameof(Department), value);
+    }
+}
+```
+
+##### 3. 在界面中使用
+
+关联后，业务对象的属性将显示为下拉列表，包含数据字典中的所有项�?
+
+##### 4. 数据字典项验�?
+
+数据字典项名称在同一字典内自动验证唯一性，确保数据完整性�?
+
+## 配置选项
+
+### 1. WxyXaf.XpoExcel 配置
+
+#### 导出选项
+
+```csharp
+var exportOptions = new XpoExcelExportOptions
+{
+    AutoFitColumns = true // 自动调整列宽
+};
+
+excelHelper.ExportToExcel<YourBusinessObject>("output.xlsx", null, exportOptions);
+```
+
+#### 导入选项
+
+```csharp
+var importOptions = new XpoExcelImportOptions
+{
+    Mode = ImportMode.CreateAndUpdate, // 导入模式
+    KeyMember = "Id", // 关键字段
+    StopOnError = false, // 是否遇到错误停止导入
+    Encoding = Encoding.UTF8 // 文件编码
+};
+
+excelHelper.ImportFromExcel<YourBusinessObject>("input.xlsx", importOptions);
+```
+
+## 依赖关系
+
+| 模块 | 依赖 |
+|------|------|
+| WxyXaf.Common | DevExpress.ExpressApp, DevExpress.ExpressApp.Xpo, DevExpress.Persistent.Base, DevExpress.Xpo |
+| WxyXaf.XpoExcel | WxyXaf.Common, NPOI |
+| WxyXaf.DataDictionaries | WxyXaf.Common, WxyXaf.XpoExcel |
+
+## 常见问题
+
+### 1. Excel 导入时出�?"字段值已存在" 错误
+
+**原因**：启用了 `IsUnique` 属性，且导入的字段值在数据库中已存�?
+
+**解决方案**�?
+- 检�?Excel 数据，确保唯一字段值不重复
+- 调整导入模式�?`UpdateOnly` �?`CreateAndUpdate`
+- 移除字段�?`IsUnique` 属�?
+
+### 2. 数据字典项不显示在下拉列表中
+
+**原因**�?
+- 数据字典名称�?`DataDictionaryAttribute` 中指定的名称不匹�?
+- 数据字典中没有添加字典项
+- 权限问题
+
+**解决方案**�?
+- 检查数据字典名称是否正�?
+- 确保数据字典中已添加字典�?
+- 检查用户权�?
+
+### 3. Excel 导出时字段顺序不正确
+
+**原因**：未设置 `ExcelFieldAttribute` �?`Order` 属�?
+
+**解决方案**�?
+
+```csharp
+[ExcelField(Order = 1)]
+public string Field1 { get; set; }
+
+[ExcelField(Order = 2)]
+public string Field2 { get; set; }
+```
+
+## 贡献指南
+
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 打开 Pull Request
+
+## 许可�?
+
+本项目采�?MIT 许可�?- 查看 [LICENSE](LICENSE) 文件了解详情�?
+
+## 联系方式
+
+如有问题或建议，请通过以下方式联系�?
+
+- 项目地址：https://github.com/yourusername/ExcelXpoExchange
 - 邮箱：your.email@example.com
-- 电话：123-456-7890
-- 文档：https://your-documentation-url.com
 
-## 9. 许可证
+## 更新日志
 
-本模块采用MIT许可证，详情请查看LICENSE文件。
+### v1.0.0
+
+- 初始发布
+- 包含 WxyXaf.Common、WxyXpoExcel、WxyXaf.DataDictionaries 模块
+- 实现数据字典管理功能
+- 实现 XPO 对象�?Excel 导入导出功能
 
 ---
 
-**更新日期**：2025-12-01
-**版本**：1.0.0
-**作者**：Your Name
+**版权所�?© 2025 ExcelXpoExchange 团队**

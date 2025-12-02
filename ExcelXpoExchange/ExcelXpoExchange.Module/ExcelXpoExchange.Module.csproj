@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <CheckEolTargetFramework>false</CheckEolTargetFramework>
@@ -29,9 +29,9 @@
     
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Wxy.Common\Wxy.Common.csproj" />
+    <ProjectReference Include="..\\WxyXaf.Common\\WxyXaf.Common.csproj" />
     <ProjectReference Include="..\WxyXaf.DataDictionaries\WxyXaf.DataDictionaries.csproj" />
-    <ProjectReference Include="..\WxyXpoExcel\WxyXpoExcel.csproj" />
+    <ProjectReference Include="..\\WxyXaf.XpoExcel\\WxyXaf.XpoExcel.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="BusinessObjects\" />

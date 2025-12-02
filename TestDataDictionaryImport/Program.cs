@@ -5,7 +5,7 @@ using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Xpo;
 using DevExpress.Xpo;
 using WxyXaf.DataDictionaries;
-using WxyXpoExcel;
+using WxyXaf.XpoExcel;
 
 namespace TestDataDictionaryImport
 {
@@ -28,14 +28,14 @@ namespace TestDataDictionaryImport
                 Console.WriteLine("  初始化XAF应用程序...");
                 var application = new BlazorApplication();
                 
-                // 添加必要的模块
-                application.Modules.Add(new WxyXpoExcel.WxyXpoExcelModule());
+                // 添加必要的模�?
+                application.Modules.Add(new WxyXaf.XpoExcel.WxyXaf.XpoExcel.odule());
                 application.Modules.Add(new WxyXaf.DataDictionaries.DataDictionariesModule());
                 
                 // 设置数据库连接（使用内存数据库）
                 application.ConnectionString = @"XpoProvider=SQLite;Data Source=:memory:;Pooling=true;Max Pool Size=100;";
                 
-                // 初始化应用程序
+                // 初始化应用程�?
                 application.Setup();
                 application.Start();
                 
@@ -62,36 +62,36 @@ namespace TestDataDictionaryImport
                         Console.WriteLine("  导入错误:");
                         foreach (var error in result.Errors)
                         {
-                            Console.WriteLine($"    行 {error.RowIndex}, 字段 {error.FieldName}: {error.ErrorMessage}");
+                            Console.WriteLine($"    �?{error.RowIndex}, 字段 {error.FieldName}: {error.ErrorMessage}");
                         }
                     }
                     
-                    // 导入字典项
-                    Console.WriteLine("  导入字典项...");
+                    // 导入字典�?
+                    Console.WriteLine("  导入字典�?..");
                     result = excelHelper.ImportFromExcel<DataDictionaryItem>(excelFilePath);
                     
                     // 显示导入结果
-                    Console.WriteLine($"  字典项导入结果: 成功={result.SuccessCount}, 失败={result.FailureCount}");
+                    Console.WriteLine($"  字典项导入结�? 成功={result.SuccessCount}, 失败={result.FailureCount}");
                     if (result.HasErrors)
                     {
                         Console.WriteLine("  导入错误:");
                         foreach (var error in result.Errors)
                         {
-                            Console.WriteLine($"    行 {error.RowIndex}, 字段 {error.FieldName}: {error.ErrorMessage}");
+                            Console.WriteLine($"    �?{error.RowIndex}, 字段 {error.FieldName}: {error.ErrorMessage}");
                         }
                     }
                     
                     // 验证导入结果
                     Console.WriteLine("  验证导入结果...");
                     var dataDictionaries = objectSpace.GetObjects<DataDictionary>();
-                    Console.WriteLine($"  导入后数据字典数量: {dataDictionaries.Count}");
+                    Console.WriteLine($"  导入后数据字典数�? {dataDictionaries.Count}");
                     
                     foreach (var dict in dataDictionaries)
                     {
-                        Console.WriteLine($"    数据字典: {dict.Name}, 字典项数量: {dict.Items.Count}");
+                        Console.WriteLine($"    数据字典: {dict.Name}, 字典项数�? {dict.Items.Count}");
                         foreach (var item in dict.Items)
                         {
-                            Console.WriteLine($"      字典项: {item.Name}, 编码: {item.Code}, 描述: {item.Description}");
+                            Console.WriteLine($"      字典�? {item.Name}, 编码: {item.Code}, 描述: {item.Description}");
                         }
                     }
                 }
@@ -116,7 +116,7 @@ namespace TestDataDictionaryImport
             // 使用NPOI创建Excel文件
             using (var workbook = new NPOI.XSSF.UserModel.XSSFWorkbook())
             {
-                // 创建数据字典工作表
+                // 创建数据字典工作�?
                 var dataDictSheet = workbook.CreateSheet("DataDictionary");
                 
                 // 创建表头
@@ -143,16 +143,16 @@ namespace TestDataDictionaryImport
                 
                 // 创建测试数据
                 row1 = dictItemSheet.CreateRow(1);
-                row1.CreateCell(0).SetCellValue("字典项1");
+                row1.CreateCell(0).SetCellValue("字典�?");
                 row1.CreateCell(1).SetCellValue("ITEM1");
-                row1.CreateCell(2).SetCellValue("这是测试字典项1");
+                row1.CreateCell(2).SetCellValue("这是测试字典�?");
                 row1.CreateCell(3).SetCellValue(1);
                 row1.CreateCell(4).SetCellValue("测试字典1");
                 
                 row2 = dictItemSheet.CreateRow(2);
-                row2.CreateCell(0).SetCellValue("字典项2");
+                row2.CreateCell(0).SetCellValue("字典�?");
                 row2.CreateCell(1).SetCellValue("ITEM2");
-                row2.CreateCell(2).SetCellValue("这是测试字典项2");
+                row2.CreateCell(2).SetCellValue("这是测试字典�?");
                 row2.CreateCell(3).SetCellValue(2);
                 row2.CreateCell(4).SetCellValue("测试字典1");
                 

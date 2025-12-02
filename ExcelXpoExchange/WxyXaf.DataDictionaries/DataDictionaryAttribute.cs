@@ -1,4 +1,4 @@
-﻿namespace WxyXaf.DataDictionaries;
+namespace WxyXaf.DataDictionaries;
 
 [AttributeUsage(AttributeTargets.Property)]
 public class DataDictionaryAttribute : Attribute

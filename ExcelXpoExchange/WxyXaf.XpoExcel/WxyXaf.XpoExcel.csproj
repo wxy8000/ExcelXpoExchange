@@ -4,16 +4,16 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- NuGet包配置 -->
+    <!-- NuGet包配�?-->
     <Version>1.0.0</Version>
-    <PackageId>Wxy.Common</PackageId>
+    <PackageId>WxyXaf.XpoExcel</PackageId>
     <Authors>Your Name</Authors>
     <Company>Your Company</Company>
-    <Description>Wxy Common Library - 提供共享接口和类型</Description>
+    <Description>WxyXaf.XpoExcel Module - 提供XPO对象的Excel导入导出功能</Description>
     <Copyright>Copyright © 2025</Copyright>
-    <PackageTags>Wxy Common</PackageTags>
-    <PackageProjectUrl>https://github.com/yourusername/Wxy.Common</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/yourusername/Wxy.Common</RepositoryUrl>
+    <PackageTags>XAF XPO Excel ImportExport</PackageTags>
+    <PackageProjectUrl>https://github.com/yourusername/WxyXaf.XpoExcel</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yourusername/WxyXaf.XpoExcel</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>../../nupkg</PackageOutputPath>
@@ -23,7 +23,13 @@
     <PackageReference Include="DevExpress.ExpressApp" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.Xpo" Version="25.1.*" />
     <PackageReference Include="DevExpress.Persistent.Base" Version="25.1.*" />
+    <PackageReference Include="DevExpress.Persistent.BaseImpl.Xpo" Version="25.1.*" />
     <PackageReference Include="DevExpress.Xpo" Version="25.1.*" />
+    <PackageReference Include="NPOI" Version="2.7.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WxyXaf.Common\WxyXaf.Common.csproj" />
   </ItemGroup>
 
 </Project>

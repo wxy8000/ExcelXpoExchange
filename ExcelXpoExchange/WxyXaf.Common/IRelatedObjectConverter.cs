@@ -2,7 +2,7 @@ using System;
 using DevExpress.ExpressApp.Model;
 using DevExpress.ExpressApp.Xpo;
 
-namespace Wxy.Common
+namespace WxyXaf.Common
 {
     /// <summary>
     /// 关联对象转换器接口，用于抽象关联对象转换逻辑

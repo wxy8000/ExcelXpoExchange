@@ -1,31 +1,31 @@
-ï»¿using System;
+using System;
 using System.IO;
 using System.Windows.Forms;
 using DevExpress.Data.Filtering;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Actions;
-using WxyXpoExcel;
+using WxyXaf.XpoExcel;
 
 namespace ExcelXpoExchange.Win.Controllers
 {
     /// <summary>
-    /// WinFormsç‰ˆé€šç”¨Excelå¯¼å…¥å¯¼å‡ºæ§åˆ¶å™¨
+    /// WinForms°æÍ¨ÓÃExcelµ¼Èëµ¼³ö¿ØÖÆÆ÷
     /// </summary>
     public class WinExcelImportExportViewController : ExcelImportExportViewController
     {
         /// <summary>
-        /// æ‰§è¡Œå¯¼å…¥æ“ä½œï¼Œå®ç°WinFormså¹³å°çš„Excelå¯¼å…¥åŠŸèƒ½
+        /// Ö´ĞĞµ¼Èë²Ù×÷£¬ÊµÏÖWinFormsÆ½Ì¨µÄExcelµ¼Èë¹¦ÄÜ
         /// </summary>
-        /// <param name="e">äº‹ä»¶å‚æ•°</param>
+        /// <param name="e">ÊÂ¼ş²ÎÊı</param>
         protected override void ExecuteImportAction(SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // æ˜¾ç¤ºWinFormsæ–‡ä»¶é€‰æ‹©å¯¹è¯æ¡†
+                // ÏÔÊ¾WinFormsÎÄ¼şÑ¡Ôñ¶Ô»°¿ò
                 using (OpenFileDialog openFileDialog = new OpenFileDialog())
                 {
-                    openFileDialog.Title = "é€‰æ‹©Excelæ–‡ä»¶";
-                    openFileDialog.Filter = "Excelæ–‡ä»¶ (*.xlsx)|*.xlsx|Excel 97-2003æ–‡ä»¶ (*.xls)|*.xls|æ‰€æœ‰æ–‡ä»¶ (*.*)|*.*";
+                    openFileDialog.Title = "Ñ¡ÔñExcelÎÄ¼ş";
+                    openFileDialog.Filter = "ExcelÎÄ¼ş (*.xlsx)|*.xlsx|Excel 97-2003ÎÄ¼ş (*.xls)|*.xls|ËùÓĞÎÄ¼ş (*.*)|*.*";
                     openFileDialog.FilterIndex = 1;
                     openFileDialog.RestoreDirectory = true;
 
@@ -33,30 +33,30 @@ namespace ExcelXpoExchange.Win.Controllers
                     {
                         string filePath = openFileDialog.FileName;
 
-                        // æ˜¾ç¤ºå¯¼å…¥æ¨¡å¼é€‰æ‹©å¯¹è¯æ¡†
+                        // ÏÔÊ¾µ¼ÈëÄ£Ê½Ñ¡Ôñ¶Ô»°¿ò
                         using (var dialog = new ImportModeDialog())
                         {
                             if (dialog.ShowDialog() == DialogResult.OK)
                             {
                                 ImportMode importMode = dialog.SelectedMode;
 
-                                // åˆ›å»ºXpoExcelHelperå®ä¾‹ï¼Œå¹¶æ³¨å†ŒDataDictionaryItemConverter
+                                // ´´½¨XpoExcelHelperÊµÀı£¬²¢×¢²áDataDictionaryItemConverter
                             var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
                             var excelHelper = new XpoExcelHelper(Application, null, new[] { dataDictionaryItemConverter });
 
-                                // æ‰§è¡Œå¯¼å…¥
+                                // Ö´ĞĞµ¼Èë
                                 var importOptions = new XpoExcelImportOptions
                                 {
                                     Mode = importMode,
                                     StopOnError = false
                                 };
 
-                                // ä½¿ç”¨åå°„è°ƒç”¨æ³›å‹æ–¹æ³•
+                                // Ê¹ÓÃ·´Éäµ÷ÓÃ·ºĞÍ·½·¨
                                 var importMethod = typeof(XpoExcelHelper).GetMethod("ImportFromExcel", new[] { typeof(string), typeof(XpoExcelImportOptions) });
                                 if (importMethod == null)
                                 {
                                     Application.ShowViewStrategy.ShowMessage(
-                                        "æ— æ³•æ‰¾åˆ°ImportFromExcelæ–¹æ³•",
+                                        "ÎŞ·¨ÕÒµ½ImportFromExcel·½·¨",
                                         InformationType.Error
                                     );
                                     return;
@@ -65,15 +65,15 @@ namespace ExcelXpoExchange.Win.Controllers
                                 var genericImportMethod = importMethod.MakeGenericMethod(ObjectType);
                                 var result = (ImportResult)genericImportMethod.Invoke(excelHelper, new object[] { filePath, importOptions });
 
-                                // æ˜¾ç¤ºå¯¼å…¥ç»“æœ
+                                // ÏÔÊ¾µ¼Èë½á¹û
                                 Application.ShowViewStrategy.ShowMessage(
                                     result.HasErrors
-                                        ? $"å¯¼å…¥å¤±è´¥ï¼ŒæˆåŠŸ{result.SuccessCount}æ¡ï¼Œå¤±è´¥{result.FailureCount}æ¡ï¼Œé”™è¯¯ä¿¡æ¯ï¼š{string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage))}"
-                                        : $"å¯¼å…¥æˆåŠŸï¼Œå…±{result.SuccessCount}æ¡è®°å½•",
+                                        ? $"µ¼ÈëÊ§°Ü£¬³É¹¦{result.SuccessCount}Ìõ£¬Ê§°Ü{result.FailureCount}Ìõ£¬´íÎóĞÅÏ¢£º{string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage))}"
+                                        : $"µ¼Èë³É¹¦£¬¹²{result.SuccessCount}Ìõ¼ÇÂ¼",
                                     result.HasErrors ? InformationType.Error : InformationType.Success
                                 );
 
-                                // åˆ·æ–°è§†å›¾ï¼Œæ˜¾ç¤ºæ–°å¯¼å…¥çš„æ•°æ®
+                                // Ë¢ĞÂÊÓÍ¼£¬ÏÔÊ¾ĞÂµ¼ÈëµÄÊı¾İ
                                 View.RefreshDataSource();
                             }
                         }
@@ -82,49 +82,49 @@ namespace ExcelXpoExchange.Win.Controllers
             }
             catch (Exception ex)
             {
-                Application.ShowViewStrategy.ShowMessage($"å¯¼å…¥Excelå¤±è´¥ï¼Œ{ex.Message}", InformationType.Error);
+                Application.ShowViewStrategy.ShowMessage($"µ¼ÈëExcelÊ§°Ü£¬{ex.Message}", InformationType.Error);
             }
         }
 
         /// <summary>
-        /// é‡å†™å¯¼å‡ºæŒ‰é’®ç‚¹å‡»äº‹ä»¶ï¼Œå®ç°WinFormså¹³å°çš„Excelå¯¼å‡ºåŠŸèƒ½
+        /// ÖØĞ´µ¼³ö°´Å¥µã»÷ÊÂ¼ş£¬ÊµÏÖWinFormsÆ½Ì¨µÄExcelµ¼³ö¹¦ÄÜ
         /// </summary>
-        /// <param name="sender">äº‹ä»¶å‘é€è€…</param>
-        /// <param name="e">äº‹ä»¶å‚æ•°</param>
+        /// <param name="sender">ÊÂ¼ş·¢ËÍÕß</param>
+        /// <param name="e">ÊÂ¼ş²ÎÊı</param>
         protected override void ExportAction_Execute(object sender, SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // ä½¿ç”¨XpoExcelHelperå¯¼å‡ºæ•°æ®
+                // Ê¹ÓÃXpoExcelHelperµ¼³öÊı¾İ
                 var excelHelper = new XpoExcelHelper(Application, null);
                 var exportOptions = ExcelImportExportAttribute?.ExportOptions ?? new XpoExcelExportOptions();
 
-                // æ˜¾ç¤ºWinFormsæ–‡ä»¶ä¿å­˜å¯¹è¯æ¡†
+                // ÏÔÊ¾WinFormsÎÄ¼ş±£´æ¶Ô»°¿ò
                 using (SaveFileDialog saveFileDialog = new SaveFileDialog())
                 {
-                    saveFileDialog.Title = "ä¿å­˜Excelæ–‡ä»¶";
-                    saveFileDialog.Filter = "Excelæ–‡ä»¶ (*.xlsx)|*.xlsx|Excel 97-2003æ–‡ä»¶ (*.xls)|*.xls|æ‰€æœ‰æ–‡ä»¶ (*.*)|*.*";
+                    saveFileDialog.Title = "±£´æExcelÎÄ¼ş";
+                    saveFileDialog.Filter = "ExcelÎÄ¼ş (*.xlsx)|*.xlsx|Excel 97-2003ÎÄ¼ş (*.xls)|*.xls|ËùÓĞÎÄ¼ş (*.*)|*.*";
                     saveFileDialog.FilterIndex = 1;
                     saveFileDialog.RestoreDirectory = true;
-                    saveFileDialog.FileName = $"{ObjectType.Name}_å¯¼å‡º_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+                    saveFileDialog.FileName = $"{ObjectType.Name}_µ¼³ö_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
 
                     if (saveFileDialog.ShowDialog() == DialogResult.OK)
                     {
                         string filePath = saveFileDialog.FileName;
 
-                        // å¯¼å‡ºæ•°æ®åˆ°æ–‡ä»¶
+                        // µ¼³öÊı¾İµ½ÎÄ¼ş
                         var exportMethod = typeof(XpoExcelHelper).GetMethod("ExportToExcel", new[] { typeof(string), typeof(CriteriaOperator), typeof(XpoExcelExportOptions) });
                         if (exportMethod == null)
                         {
-                            throw new InvalidOperationException("æ— æ³•æ‰¾åˆ°ExportToExcelæ–¹æ³•");
+                            throw new InvalidOperationException("ÎŞ·¨ÕÒµ½ExportToExcel·½·¨");
                         }
 
                         var genericExportMethod = exportMethod.MakeGenericMethod(ObjectType);
                         genericExportMethod.Invoke(excelHelper, new object[] { filePath, null, exportOptions });
 
-                        // æ˜¾ç¤ºæˆåŠŸæ¶ˆæ¯
+                        // ÏÔÊ¾³É¹¦ÏûÏ¢
                         Application.ShowViewStrategy.ShowMessage(
-                            $"æ•°æ®å·²æˆåŠŸå¯¼å‡ºåˆ°ï¼š{filePath}",
+                            $"Êı¾İÒÑ³É¹¦µ¼³öµ½£º{filePath}",
                             InformationType.Success
                         );
                     }
@@ -132,16 +132,16 @@ namespace ExcelXpoExchange.Win.Controllers
             }
             catch (Exception ex)
             {
-                // æ˜¾ç¤ºé”™è¯¯æ¶ˆæ¯
+                // ÏÔÊ¾´íÎóÏûÏ¢
                 Application.ShowViewStrategy.ShowMessage(
-                    $"å¯¼å‡ºå¤±è´¥ï¼š{ex.Message}",
+                    $"µ¼³öÊ§°Ü£º{ex.Message}",
                     InformationType.Error
                 );
             }
         }
 
         /// <summary>
-        /// å¯¼å…¥æ¨¡å¼é€‰æ‹©å¯¹è¯æ¡†
+        /// µ¼ÈëÄ£Ê½Ñ¡Ôñ¶Ô»°¿ò
         /// </summary>
         private class ImportModeDialog : Form
         {
@@ -180,7 +180,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.label1.Name = "label1";
                 this.label1.Size = new System.Drawing.Size(82, 15);
                 this.label1.TabIndex = 0;
-                this.label1.Text = "è¯·é€‰æ‹©å¯¼å…¥æ¨¡å¼ï¼š";
+                this.label1.Text = "ÇëÑ¡Ôñµ¼ÈëÄ£Ê½£º";
                 // 
                 // rbCreateOnly
                 // 
@@ -190,7 +190,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.rbCreateOnly.Size = new System.Drawing.Size(113, 19);
                 this.rbCreateOnly.TabIndex = 1;
                 this.rbCreateOnly.TabStop = true;
-                this.rbCreateOnly.Text = "ä»…åˆ›å»ºæ–°æ•°æ®";
+                this.rbCreateOnly.Text = "½ö´´½¨ĞÂÊı¾İ";
                 this.rbCreateOnly.UseVisualStyleBackColor = true;
                 this.rbCreateOnly.CheckedChanged += new System.EventHandler(this.rbCreateOnly_CheckedChanged);
                 // 
@@ -202,7 +202,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.rbUpdateOnly.Size = new System.Drawing.Size(137, 19);
                 this.rbUpdateOnly.TabIndex = 2;
                 this.rbUpdateOnly.TabStop = true;
-                this.rbUpdateOnly.Text = "ä»…æ›´æ–°å·²å­˜åœ¨çš„æ•°æ®";
+                this.rbUpdateOnly.Text = "½ö¸üĞÂÒÑ´æÔÚµÄÊı¾İ";
                 this.rbUpdateOnly.UseVisualStyleBackColor = true;
                 this.rbUpdateOnly.CheckedChanged += new System.EventHandler(this.rbUpdateOnly_CheckedChanged);
                 // 
@@ -214,7 +214,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.rbCreateOrUpdate.Size = new System.Drawing.Size(113, 19);
                 this.rbCreateOrUpdate.TabIndex = 3;
                 this.rbCreateOrUpdate.TabStop = true;
-                this.rbCreateOrUpdate.Text = "åˆ›å»ºæˆ–æ›´æ–°æ•°æ®";
+                this.rbCreateOrUpdate.Text = "´´½¨»ò¸üĞÂÊı¾İ";
                 this.rbCreateOrUpdate.UseVisualStyleBackColor = true;
                 this.rbCreateOrUpdate.CheckedChanged += new System.EventHandler(this.rbCreateOrUpdate_CheckedChanged);
                 // 
@@ -226,7 +226,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.rbReplace.Size = new System.Drawing.Size(113, 19);
                 this.rbReplace.TabIndex = 4;
                 this.rbReplace.TabStop = true;
-                this.rbReplace.Text = "æ›¿æ¢æ‰€æœ‰æ•°æ®";
+                this.rbReplace.Text = "Ìæ»»ËùÓĞÊı¾İ";
                 this.rbReplace.UseVisualStyleBackColor = true;
                 this.rbReplace.CheckedChanged += new System.EventHandler(this.rbReplace_CheckedChanged);
                 // 
@@ -237,7 +237,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.btnOK.Name = "btnOK";
                 this.btnOK.Size = new System.Drawing.Size(75, 23);
                 this.btnOK.TabIndex = 5;
-                this.btnOK.Text = "ç¡®å®š";
+                this.btnOK.Text = "È·¶¨";
                 this.btnOK.UseVisualStyleBackColor = true;
                 // 
                 // btnCancel
@@ -247,7 +247,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.btnCancel.Name = "btnCancel";
                 this.btnCancel.Size = new System.Drawing.Size(75, 23);
                 this.btnCancel.TabIndex = 6;
-                this.btnCancel.Text = "å–æ¶ˆ";
+                this.btnCancel.Text = "È¡Ïû";
                 this.btnCancel.UseVisualStyleBackColor = true;
                 // 
                 // ImportModeDialog
@@ -267,7 +267,7 @@ namespace ExcelXpoExchange.Win.Controllers
                 this.MinimizeBox = false;
                 this.Name = "ImportModeDialog";
                 this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-                this.Text = "é€‰æ‹©å¯¼å…¥æ¨¡å¼";
+                this.Text = "Ñ¡Ôñµ¼ÈëÄ£Ê½";
                 this.ResumeLayout(false);
                 this.PerformLayout();
             }

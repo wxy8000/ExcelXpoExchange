@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Reflection;
@@ -42,7 +42,7 @@ namespace ExcelXpoExchange.Win
         {
             InitializeComponent();
             LoadBlankLogo();
-            this.labelCopyright.Text = "Copyright © " + DateTime.Now.Year.ToString() + " Company Name" + System.Environment.NewLine + "All rights reserved.";
+            this.labelCopyright.Text = "Copyright ? " + DateTime.Now.Year.ToString() + " Company Name" + System.Environment.NewLine + "All rights reserved.";
             UpdateLabelsPosition();
         }
 

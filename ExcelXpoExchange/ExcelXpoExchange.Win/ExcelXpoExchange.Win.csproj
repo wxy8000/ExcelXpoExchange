@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0-windows</TargetFramework>
@@ -42,7 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExcelXpoExchange.Module\ExcelXpoExchange.Module.csproj" />
-    <ProjectReference Include="..\WxyXpoExcel\WxyXpoExcel.csproj" />
+    <ProjectReference Include="..\\WxyXaf.XpoExcel\\WxyXaf.XpoExcel.csproj" />
     <ProjectReference Include="..\WxyXaf.DataDictionaries\WxyXaf.DataDictionaries.csproj" />
   </ItemGroup>
 </Project>

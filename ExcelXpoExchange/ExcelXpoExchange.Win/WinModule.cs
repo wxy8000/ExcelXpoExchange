@@ -1,4 +1,4 @@
-锘縰sing System.ComponentModel;
+using System.ComponentModel;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Actions;
 using DevExpress.ExpressApp.DC;
@@ -18,7 +18,7 @@ namespace ExcelXpoExchange.Win
         public ExcelXpoExchangeWinModule()
         {
             DevExpress.ExpressApp.Editors.FormattingProvider.UseMaskSettings = true;
-            // 鏄惧紡娉ㄥ唽WinForms骞冲彴鐗瑰畾鐨勬帶鍒跺櫒
+            // 显式注册WinForms平台特定的控制器
             AdditionalControllerTypes.Add(typeof(Controllers.WinExcelImportExportViewController));
         }
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)

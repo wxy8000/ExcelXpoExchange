@@ -1,14 +1,14 @@
-ï»¿using DevExpress.Persistent.Base;
+using DevExpress.Persistent.Base;
 using DevExpress.Persistent.BaseImpl;
 using DevExpress.Persistent.Validation;
 using DevExpress.Xpo;
-using WxyXpoExcel;
+using WxyXaf.XpoExcel;
 
 namespace WxyXaf.DataDictionaries;
 
 [Persistent]
 [NavigationItem]
-[System.ComponentModel.DisplayName("æ•°æ®å­—å…¸")]
+[System.ComponentModel.DisplayName("Êý¾Ý×Öµä")]
 [ExcelImportExport]
 public class DataDictionary : BaseObject
 {
@@ -16,14 +16,14 @@ public class DataDictionary : BaseObject
 
     [RuleRequiredField]
     [RuleUniqueValue]
-    [System.ComponentModel.DisplayName("åç§°")]
+    [System.ComponentModel.DisplayName("Ãû³Æ")]
     public string Name
     {
         get => _name;
         set => SetPropertyValue(nameof(Name), ref _name, value);
     }
 
-    [System.ComponentModel.DisplayName("å­—å…¸é¡¹")]
+    [System.ComponentModel.DisplayName("×ÖµäÏî")]
     [Association("DataDictionary-Items"), Aggregated]
     public XPCollection<DataDictionaryItem> Items
     {

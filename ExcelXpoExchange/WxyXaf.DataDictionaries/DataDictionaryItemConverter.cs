@@ -2,7 +2,7 @@ using System;
 using DevExpress.Data.Filtering;
 using DevExpress.ExpressApp.Model;
 using DevExpress.ExpressApp.Xpo;
-using Wxy.Common;
+using WxyXaf.Common;
 
 namespace WxyXaf.DataDictionaries
 {
@@ -12,7 +12,7 @@ namespace WxyXaf.DataDictionaries
     public class DataDictionaryItemConverter : IRelatedObjectConverter
     {
         /// <summary>
-        /// 判断当前转换器是否支持指定类型
+        /// 判断当前转换器是否支持指定类�?
         /// </summary>
         /// <param name="objectType">要转换的对象类型</param>
         /// <returns>是否支持</returns>
@@ -24,7 +24,7 @@ namespace WxyXaf.DataDictionaries
         /// <summary>
         /// 将Excel单元格值转换为DataDictionaryItem对象
         /// </summary>
-        /// <param name="cellValue">Excel单元格值</param>
+        /// <param name="cellValue">Excel单元格�?/param>
         /// <param name="member">模型成员信息</param>
         /// <param name="objectSpace">对象空间</param>
         /// <returns>转换后的DataDictionaryItem对象</returns>
@@ -35,7 +35,7 @@ namespace WxyXaf.DataDictionaries
                 return null;
             }
             
-            // 获取显示值
+            // 获取显示�?
             string displayValue = cellValue.ToString();
             if (string.IsNullOrWhiteSpace(displayValue))
             {
@@ -43,12 +43,12 @@ namespace WxyXaf.DataDictionaries
             }
             
             // 查找或创建DataDictionaryItem
-            // 1. 首先获取DataDictionaryName（从DataDictionaryAttribute）
+            // 1. 首先获取DataDictionaryName（从DataDictionaryAttribute�?
             DataDictionaryAttribute dataDictionaryAttribute = null;
             string dictionaryName = string.Empty;
             
             // 方式1：使用反射直接从属性获取DataDictionaryAttribute
-            // 注意：member.MemberInfo.Owner.Type 是包含该属性的类（如Order），而不是属性类型（如DataDictionaryItem）
+            // 注意：member.MemberInfo.Owner.Type 是包含该属性的类（如Order），而不是属性类型（如DataDictionaryItem�?
             var propertyInfo = member.MemberInfo.Owner.Type.GetProperty(member.Name);
             if (propertyInfo != null)
             {
@@ -61,7 +61,7 @@ namespace WxyXaf.DataDictionaries
                 }
             }
             
-            // 方式2：如果方式1失败，尝试使用FindAttribute方法获取
+            // 方式2：如果方�?失败，尝试使用FindAttribute方法获取
             if (dataDictionaryAttribute == null)
             {
                 // 使用FindAttribute方法查找DataDictionaryAttribute
@@ -72,10 +72,10 @@ namespace WxyXaf.DataDictionaries
                 }
             }
             
-            // 方式3：如果方式1和方式2都失败，尝试从MemberTypeInfo获取
+            // 方式3：如果方�?和方�?都失败，尝试从MemberTypeInfo获取
             if (dataDictionaryAttribute == null)
             {
-                // 从MemberTypeInfo获取属性信息
+                // 从MemberTypeInfo获取属性信�?
                 var typeInfo = member.MemberInfo.MemberTypeInfo;
                 if (typeInfo != null)
                 {
@@ -99,7 +99,7 @@ namespace WxyXaf.DataDictionaries
                 
                 if (dataDictionary == null)
                 {
-                    // 如果DataDictionary不存在，创建它
+                    // 如果DataDictionary不存在，创建�?
                     dataDictionary = objectSpace.CreateObject<DataDictionary>();
                     dataDictionary.Name = dictionaryName;
                     // 确保DataDictionary被保存，以便后续查询能找到它
@@ -132,7 +132,7 @@ namespace WxyXaf.DataDictionaries
                     var newItem = objectSpace.CreateObject<DataDictionaryItem>();
                     newItem.Name = displayValue;
                     newItem.DataDictionary = dataDictionary;
-                    // 双向关联，确保关系正确建立
+                    // 双向关联，确保关系正确建�?
                     dataDictionary.Items.Add(newItem);
                     return newItem;
                 }

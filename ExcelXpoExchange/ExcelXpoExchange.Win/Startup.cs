@@ -1,4 +1,4 @@
-﻿using System.Configuration;
+using System.Configuration;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.ApplicationBuilder;
 using DevExpress.ExpressApp.Design;
@@ -30,7 +30,7 @@ namespace ExcelXpoExchange.Win
                     options.AllowValidationDetailsAccess = false;
                 })
                 .Add<ExcelXpoExchange.Module.ExcelXpoExchangeModule>()
-                .Add<WxyXpoExcel.WxyXpoExcelModule>()
+                .Add<WxyXaf.XpoExcel.WxyXafXpoExcelModule>()
                 .Add<ExcelXpoExchangeWinModule>();
             builder.ObjectSpaceProviders
                 .AddXpo((application, options) =>
@@ -42,11 +42,11 @@ namespace ExcelXpoExchange.Win
             {
                 application.ConnectionString = connectionString;
                 
-                // 确保在所有情况下都能正确更新数据库
-                // 设置为UpdateDatabaseAlways以自动更新数据库架构
+                // ȷ������������¶�����ȷ�������ݿ�
+                // ����ΪUpdateDatabaseAlways���Զ��������ݿ�ܹ�
                 application.DatabaseUpdateMode = DatabaseUpdateMode.UpdateDatabaseAlways;
                 
-                // 推荐使用ModuleInfo来检查兼容性，这是DevExpress推荐的方式
+                // �Ƽ�ʹ��ModuleInfo���������ԣ�����DevExpress�Ƽ��ķ�ʽ
                 application.CheckCompatibilityType = CheckCompatibilityType.ModuleInfo;
             });
             var winApplication = builder.Build();

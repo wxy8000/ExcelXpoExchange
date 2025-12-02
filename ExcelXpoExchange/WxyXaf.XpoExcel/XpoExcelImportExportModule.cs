@@ -11,17 +11,17 @@ using DevExpress.ExpressApp.Xpo;
 using DevExpress.Persistent.Base;
 using DevExpress.Xpo;
 
-namespace WxyXpoExcel
+namespace WxyXaf.XpoExcel
 {
     /// <summary>
-    /// WxyXpoExcel模块，用于自动注册带有ExcelImportExportAttribute标记的XPO类的导入导出功能
+    /// WxyXaf.XpoExcel模块，用于自动注册带有ExcelImportExportAttribute标记的XPO类的导入导出功能
     /// </summary>
-    public sealed class WxyXpoExcelModule : ModuleBase
+    public sealed class WxyXafXpoExcelModule : ModuleBase
     {
-        public WxyXpoExcelModule()
+        public WxyXafXpoExcelModule()
         {
             RequiredModuleTypes.Add(typeof(SystemModule));
-            // 显式注册控制器，确保它们被自动发现
+            // 显式注册控制器，确保它们被自动发�?
             AdditionalControllerTypes.Add(typeof(ExcelImportExportViewController));
         }
 
@@ -38,7 +38,7 @@ namespace WxyXpoExcel
         /// <summary>
         /// 当应用程序设置完成后调用
         /// </summary>
-        /// <param name="sender">事件发送者</param>
+        /// <param name="sender">事件发送�?/param>
         /// <param name="e">事件参数</param>
         private void Application_SetupComplete(object sender, EventArgs e)
         {
@@ -49,5 +49,5 @@ namespace WxyXpoExcel
     // 注意：原来的ImportExportController已被拆分为两个针对不同平台的控制器：
     // 1. ImportExportWinController - 针对WinForms平台
     // 2. ImportExportBlazorController - 针对Blazor平台
-    // 这两个控制器会根据当前运行的平台自动激活
+    // 这两个控制器会根据当前运行的平台自动激�?
 }

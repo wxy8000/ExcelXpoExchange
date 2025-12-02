@@ -12,7 +12,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using WxyXaf.DataDictionaries;
-using WxyXpoExcel;
+using WxyXaf.XpoExcel;
 
 namespace ExcelXpoExchange.Module.BusinessObjects
 {

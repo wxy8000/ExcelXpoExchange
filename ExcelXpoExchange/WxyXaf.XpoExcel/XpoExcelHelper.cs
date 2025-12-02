@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -19,9 +19,9 @@ using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
 
 
-using Wxy.Common;
+using WxyXaf.Common;
 
-namespace WxyXpoExcel
+namespace WxyXaf.XpoExcel
 {
     
     /// <summary>

@@ -8,29 +8,29 @@ namespace TestDataDictionaryUpdater
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("=== 测试DataDictionary属性收集 ===");
+            Console.WriteLine("=== 测试DataDictionary属性收�?===");
             
-            // 加载ExcelXpoExchange.Module程序集
+            // 加载ExcelXpoExchange.Module程序�?
             Assembly moduleAssembly = Assembly.LoadFrom(@"D:\projects\ExcelXpoExchange\ExcelXpoExchange\ExcelXpoExchange.Module\bin\Debug\net9.0\ExcelXpoExchange.Module.dll");
-            Console.WriteLine($"  加载程序集: {moduleAssembly.FullName}");
+            Console.WriteLine($"  加载程序�? {moduleAssembly.FullName}");
             
-            // 获取Order类
+            // 获取Order�?
             Type orderType = moduleAssembly.GetType("ExcelXpoExchange.Module.BusinessObjects.Order");
             if (orderType == null)
             {
-                Console.WriteLine("  找不到Order类");
+                Console.WriteLine("  找不到Order�?);
                 return;
             }
-            Console.WriteLine($"  找到Order类: {orderType.FullName}");
+            Console.WriteLine($"  找到Order�? {orderType.FullName}");
             
-            // 获取Order类的所有属性
+            // 获取Order类的所有属�?
             PropertyInfo[] properties = orderType.GetProperties();
-            Console.WriteLine($"  找到 {properties.Length} 个属性");
+            Console.WriteLine($"  找到 {properties.Length} 个属�?);
             
-            // 遍历所有属性，查找带有DataDictionaryAttribute的属性
+            // 遍历所有属性，查找带有DataDictionaryAttribute的属�?
             foreach (PropertyInfo property in properties)
             {
-                Console.WriteLine($"  处理属性: {property.Name}");
+                Console.WriteLine($"  处理属�? {property.Name}");
                 
                 // 获取属性上的DataDictionaryAttribute
                 object[] attributes = property.GetCustomAttributes(typeof(DataDictionaryAttribute), true);
@@ -39,7 +39,7 @@ namespace TestDataDictionaryUpdater
                     var dataDictionaryAttribute = attributes[0] as DataDictionaryAttribute;
                     if (dataDictionaryAttribute != null)
                     {
-                        Console.WriteLine($"  找到DataDictionaryAttribute，字典名称: {dataDictionaryAttribute.DataDictionaryName}");
+                        Console.WriteLine($"  找到DataDictionaryAttribute，字典名�? {dataDictionaryAttribute.DataDictionaryName}");
                     }
                 }
                 else

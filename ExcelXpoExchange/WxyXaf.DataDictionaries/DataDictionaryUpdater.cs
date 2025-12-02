@@ -1,4 +1,4 @@
-ï»¿using DevExpress.ExpressApp;
+using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Updating;
 using DevExpress.Xpo;
 
@@ -17,129 +17,129 @@ public class DataDictionaryUpdater : ModuleUpdater
     {
         base.UpdateDatabaseAfterUpdateSchema();
 
-        Tracing.Tracer.LogText("=== DataDictionaryUpdater.UpdateDatabaseAfterUpdateSchema å¼€å§‹æ‰§è¡Œ ===");
+        Tracing.Tracer.LogText("=== DataDictionaryUpdater.UpdateDatabaseAfterUpdateSchema ¿ªÊ¼Ö´ĞĞ ===");
 
-        // æ”¶é›†XAFä¸­çš„æ‰€æœ‰æ•°æ®å­—å…¸åç§°ï¼Œå¹¶åˆ›å»ºå¯¹åº”çš„æ•°æ®å­—å…¸
-        // æ”¶é›†æ€è·¯ä¸Moduleç±»ä¸­CustomizeTypesInfoæ–¹æ³•ç±»ä¼¼ï¼Œè¯·å‚è€ƒå…¶ä¸­çš„æ³¨é‡Š
-        // æ³¨æ„ï¼šè¿™é‡Œå¹¶æ²¡æœ‰å¯¹å…¶è¿›è¡Œè¿‡æ»¤ï¼Œåªè¦æœ‰DataDictionaryAttributeéƒ½ä¼šè¢«æ”¶é›†
+        // ÊÕ¼¯XAFÖĞµÄËùÓĞÊı¾İ×ÖµäÃû³Æ£¬²¢´´½¨¶ÔÓ¦µÄÊı¾İ×Öµä
+        // ÊÕ¼¯Ë¼Â·ÓëModuleÀàÖĞCustomizeTypesInfo·½·¨ÀàËÆ£¬Çë²Î¿¼ÆäÖĞµÄ×¢ÊÍ
+        // ×¢Òâ£ºÕâÀï²¢Ã»ÓĞ¶ÔÆä½øĞĞ¹ıÂË£¬Ö»ÒªÓĞDataDictionaryAttribute¶¼»á±»ÊÕ¼¯
 
         var typesInfo = ObjectSpace.TypesInfo;
         var dataDictionaryNames = new List<string>();
 
-        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  æ‰¾åˆ° {typesInfo.PersistentTypes.Count()} ä¸ªæŒä¹…ç±»å‹");
+        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  ÕÒµ½ {typesInfo.PersistentTypes.Count()} ¸ö³Ö¾ÃÀàĞÍ");
         
-        // éå†æ‰€æœ‰æŒä¹…ç±»å‹
+        // ±éÀúËùÓĞ³Ö¾ÃÀàĞÍ
         foreach (var persistentTypeInfo in typesInfo.PersistentTypes.Where(p => p.IsPersistent))
         {
-            // è·å–å®é™…çš„CLRç±»å‹
+            // »ñÈ¡Êµ¼ÊµÄCLRÀàĞÍ
             Type clrType = persistentTypeInfo.Type;
-            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  å¤„ç†CLRç±»å‹: {clrType.FullName}");
+            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  ´¦ÀíCLRÀàĞÍ: {clrType.FullName}");
             
-            // ç‰¹åˆ«æ£€æŸ¥Orderç±»
+            // ÌØ±ğ¼ì²éOrderÀà
             if (clrType.Name == "Order")
             {
-                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  æ‰¾åˆ°Orderç±»ï¼Œå¼€å§‹å¤„ç†å…¶å±æ€§");
+                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  ÕÒµ½OrderÀà£¬¿ªÊ¼´¦ÀíÆäÊôĞÔ");
             }
             
-            // éå†ç±»å‹çš„æ‰€æœ‰å±æ€§æˆå‘˜
+            // ±éÀúÀàĞÍµÄËùÓĞÊôĞÔ³ÉÔ±
             var properties = persistentTypeInfo.Members.Where(m => m.IsProperty).ToList();
-            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ‰¾åˆ° {properties.Count} ä¸ªå±æ€§");
+            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ÕÒµ½ {properties.Count} ¸öÊôĞÔ");
             
             foreach (var member in properties)
             {
-                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    å¤„ç†å±æ€§: {member.Name}");
+                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ´¦ÀíÊôĞÔ: {member.Name}");
                 
-                // ç‰¹åˆ«æ£€æŸ¥Departmentå’ŒZhiWeiå±æ€§
+                // ÌØ±ğ¼ì²éDepartmentºÍZhiWeiÊôĞÔ
                 if (member.Name == "Department" || member.Name == "ZhiWei")
                 {
-                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ‰¾åˆ°ç›®æ ‡å±æ€§: {member.Name}");
+                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ÕÒµ½Ä¿±êÊôĞÔ: {member.Name}");
                 }
                 
-                // å°è¯•è·å–DataDictionaryAttribute
+                // ³¢ÊÔ»ñÈ¡DataDictionaryAttribute
                 DataDictionaryAttribute attribute = null;
                 
-                // æ–¹å¼1: ç›´æ¥ä»CLRå±æ€§è·å–Attribute
+                // ·½Ê½1: Ö±½Ó´ÓCLRÊôĞÔ»ñÈ¡Attribute
                 var propertyInfo = clrType.GetProperty(member.Name);
                 if (propertyInfo != null)
                 {
-                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ–¹å¼2: å°è¯•ä»CLRå±æ€§è·å–Attribute");
+                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ·½Ê½2: ³¢ÊÔ´ÓCLRÊôĞÔ»ñÈ¡Attribute");
                     var attributes = propertyInfo.GetCustomAttributes(typeof(DataDictionaryAttribute), true);
-                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ–¹å¼2: æ‰¾åˆ° {attributes.Length} ä¸ªDataDictionaryAttribute");
+                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ·½Ê½2: ÕÒµ½ {attributes.Length} ¸öDataDictionaryAttribute");
                     attribute = attributes.FirstOrDefault() as DataDictionaryAttribute;
                     if (attribute != null)
                     {
-                        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ–¹å¼2: ä»CLRå±æ€§è·å–åˆ°DataDictionaryAttributeï¼Œå­—å…¸åç§°: {attribute.DataDictionaryName}");
+                        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ·½Ê½2: ´ÓCLRÊôĞÔ»ñÈ¡µ½DataDictionaryAttribute£¬×ÖµäÃû³Æ: {attribute.DataDictionaryName}");
                     }
                     else
                     {
-                        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ–¹å¼2: æœªä»CLRå±æ€§è·å–åˆ°DataDictionaryAttribute");
+                        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ·½Ê½2: Î´´ÓCLRÊôĞÔ»ñÈ¡µ½DataDictionaryAttribute");
                     }
                 }
                 else
                 {
-                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ–¹å¼2: æ— æ³•è·å–CLRå±æ€§ä¿¡æ¯");
+                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    ·½Ê½2: ÎŞ·¨»ñÈ¡CLRÊôĞÔĞÅÏ¢");
                 }
                 
                 if (attribute != null && !string.IsNullOrWhiteSpace(attribute.DataDictionaryName))
                 {
-                    // å¦‚æœæ‰¾åˆ°æœ‰æ•ˆçš„DataDictionaryAttributeï¼Œæ·»åŠ åˆ°åˆ—è¡¨ä¸­
+                    // Èç¹ûÕÒµ½ÓĞĞ§µÄDataDictionaryAttribute£¬Ìí¼Óµ½ÁĞ±íÖĞ
                     if (!dataDictionaryNames.Contains(attribute.DataDictionaryName))
                     {
                         dataDictionaryNames.Add(attribute.DataDictionaryName);
-                        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ·»åŠ æ•°æ®å­—å…¸åç§°: {attribute.DataDictionaryName}");
+                        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    Ìí¼ÓÊı¾İ×ÖµäÃû³Æ: {attribute.DataDictionaryName}");
                     }
                 }
                 else
                 {
-                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æœªæ‰¾åˆ°æœ‰æ•ˆçš„DataDictionaryAttribute");
+                    Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    Î´ÕÒµ½ÓĞĞ§µÄDataDictionaryAttribute");
                 }
             }
         }
         
-        // æ‰‹åŠ¨æ·»åŠ Orderç±»ä¸­çš„æ•°æ®å­—å…¸åç§°ï¼Œç¡®ä¿å®ƒä»¬è¢«åˆ›å»º
-        // è¿™æ˜¯ä¸€ä¸ªä¸´æ—¶è§£å†³æ–¹æ¡ˆï¼Œç”¨äºç¡®ä¿æ•°æ®å­—å…¸è¢«åˆ›å»º
-        if (!dataDictionaryNames.Contains("éƒ¨é—¨"))
+        // ÊÖ¶¯Ìí¼ÓOrderÀàÖĞµÄÊı¾İ×ÖµäÃû³Æ£¬È·±£ËüÃÇ±»´´½¨
+        // ÕâÊÇÒ»¸öÁÙÊ±½â¾ö·½°¸£¬ÓÃÓÚÈ·±£Êı¾İ×Öµä±»´´½¨
+        if (!dataDictionaryNames.Contains("²¿ÃÅ"))
         {
-            dataDictionaryNames.Add("éƒ¨é—¨");
-            Tracing.Tracer.LogText("=== DataDictionaryUpdater ===    æ‰‹åŠ¨æ·»åŠ æ•°æ®å­—å…¸åç§°: éƒ¨é—¨");
+            dataDictionaryNames.Add("²¿ÃÅ");
+            Tracing.Tracer.LogText("=== DataDictionaryUpdater ===    ÊÖ¶¯Ìí¼ÓÊı¾İ×ÖµäÃû³Æ: ²¿ÃÅ");
         }
-        if (!dataDictionaryNames.Contains("èŒä½"))
+        if (!dataDictionaryNames.Contains("Ö°Î»"))
         {
-            dataDictionaryNames.Add("èŒä½");
-            Tracing.Tracer.LogText("=== DataDictionaryUpdater ===    æ‰‹åŠ¨æ·»åŠ æ•°æ®å­—å…¸åç§°: èŒä½");
+            dataDictionaryNames.Add("Ö°Î»");
+            Tracing.Tracer.LogText("=== DataDictionaryUpdater ===    ÊÖ¶¯Ìí¼ÓÊı¾İ×ÖµäÃû³Æ: Ö°Î»");
         }
 
-        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  æ”¶é›†åˆ° {dataDictionaryNames.Count} ä¸ªæ•°æ®å­—å…¸åç§°");
+        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  ÊÕ¼¯µ½ {dataDictionaryNames.Count} ¸öÊı¾İ×ÖµäÃû³Æ");
         foreach (var name in dataDictionaryNames)
         {
-            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ•°æ®å­—å…¸åç§°: {name}");
+            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    Êı¾İ×ÖµäÃû³Æ: {name}");
         }
 
-        // éå†æ‰€æœ‰æ•°æ®å­—å…¸åç§°ï¼Œåˆ›å»ºå¯¹åº”çš„æ•°æ®å­—å…¸
+        // ±éÀúËùÓĞÊı¾İ×ÖµäÃû³Æ£¬´´½¨¶ÔÓ¦µÄÊı¾İ×Öµä
         foreach (var dataDictionaryName in dataDictionaryNames)
         {
-            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  å¤„ç†æ•°æ®å­—å…¸åç§°: {dataDictionaryName}");
+            Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  ´¦ÀíÊı¾İ×ÖµäÃû³Æ: {dataDictionaryName}");
             
-            // æ£€æŸ¥æ•°æ®å­—å…¸æ˜¯å¦å·²å­˜åœ¨
-            // ä½¿ç”¨ObjectSpace.FindObjectæ–¹æ³•ä»£æ›¿FirstOrDefaultæ–¹æ³•
+            // ¼ì²éÊı¾İ×ÖµäÊÇ·ñÒÑ´æÔÚ
+            // Ê¹ÓÃObjectSpace.FindObject·½·¨´úÌæFirstOrDefault·½·¨
             var dataDictionary = ObjectSpace.FindObject<DataDictionary>(
                 new DevExpress.Data.Filtering.BinaryOperator("Name", dataDictionaryName));
             if (dataDictionary == null)
             {
-                // å¦‚æœä¸å­˜åœ¨ï¼Œåˆ›å»ºæ–°çš„æ•°æ®å­—å…¸
-                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ•°æ®å­—å…¸ä¸å­˜åœ¨ï¼Œåˆ›å»ºæ–°çš„æ•°æ®å­—å…¸: {dataDictionaryName}");
+                // Èç¹û²»´æÔÚ£¬´´½¨ĞÂµÄÊı¾İ×Öµä
+                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    Êı¾İ×Öµä²»´æÔÚ£¬´´½¨ĞÂµÄÊı¾İ×Öµä: {dataDictionaryName}");
                 dataDictionary = ObjectSpace.CreateObject<DataDictionary>();
                 dataDictionary.Name = dataDictionaryName;
             }
             else
             {
-                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    æ•°æ®å­—å…¸å·²å­˜åœ¨: {dataDictionaryName}");
+                Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===    Êı¾İ×ÖµäÒÑ´æÔÚ: {dataDictionaryName}");
             }
         }
 
-        // æäº¤æ›´æ”¹
-        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  æäº¤æ›´æ”¹");
+        // Ìá½»¸ü¸Ä
+        Tracing.Tracer.LogText($"=== DataDictionaryUpdater ===  Ìá½»¸ü¸Ä");
         ObjectSpace.CommitChanges();
-        Tracing.Tracer.LogText($"=== DataDictionaryUpdater === æ‰§è¡Œå®Œæˆ ===");
+        Tracing.Tracer.LogText($"=== DataDictionaryUpdater === Ö´ĞĞÍê³É ===");
     }
 }

@@ -5,6 +5,7 @@ using DevExpress.Persistent.Base;
 using DevExpress.Xpo;
 using System.ComponentModel;
 using System.Collections;
+using System.Diagnostics;
 
 namespace WxyXaf.DataDictionaries;
 
@@ -13,7 +14,7 @@ public sealed class DataDictionariesModule : ModuleBase
     public DataDictionariesModule()
     {
         RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.SystemModule.SystemModule));
-        RequiredModuleTypes.Add(typeof(WxyXpoExcel.WxyXpoExcelModule));
+        RequiredModuleTypes.Add(typeof(WxyXaf.XpoExcel.WxyXafXpoExcelModule));
     }
 
     public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)
@@ -28,7 +29,7 @@ public sealed class DataDictionariesModule : ModuleBase
     {
         base.CustomizeTypesInfo(typesInfo);
 
-        Tracing.Tracer.LogText("=== DataDictionariesModule === === DataDictionariesModule.CustomizeTypesInfo 开始执行 ===");
+        Tracing.Tracer.LogText("=== DataDictionariesModule.CustomizeTypesInfo 开始执行===");
 
         ITypeInfo dataDictionaryItemTypeInfo = null;
 
@@ -36,7 +37,7 @@ public sealed class DataDictionariesModule : ModuleBase
         // https://www.cnblogs.com/haoxj/p/16834882.html
         foreach (var persistentTypeInfo in typesInfo.PersistentTypes.Where(p => p.IsPersistent))
         {
-            Tracing.Tracer.LogText($"=== DataDictionariesModule === 处理持久化类型: {persistentTypeInfo.Type.FullName}");
+            Tracing.Tracer.LogText($"=== 处理持久化类型 {persistentTypeInfo.Type.FullName}");
             
             // 遍历所有属性成员，不进行类型过滤
             var members = persistentTypeInfo.Members
@@ -44,13 +45,13 @@ public sealed class DataDictionariesModule : ModuleBase
 
             foreach (var member in members)
             {
-                Tracing.Tracer.LogText($"=== DataDictionariesModule ===  处理属性: {member.Name}, 类型: {member.MemberType.Name}");
+                Tracing.Tracer.LogText($"===  处理属性 {member.Name}, 类型: {member.MemberType.Name}");
                 
                 // 符合数据字典的要求是在属性中添加DataDictionaryAttribute，并且其DataDictionaryName属性不为空
                 var attribute = member.FindAttribute<DataDictionaryAttribute>();
                 if (attribute != null && !string.IsNullOrWhiteSpace(attribute.DataDictionaryName))
                 {
-                    Tracing.Tracer.LogText($"=== DataDictionariesModule ===    找到DataDictionaryAttribute，字典名称: {attribute.DataDictionaryName}");
+                    Tracing.Tracer.LogText($"===    找到DataDictionaryAttribute，字典名称 {attribute.DataDictionaryName}");
                     
                     // 在TypesInfo中查找出DataDictionaryItem对应的TypeInfo
                     dataDictionaryItemTypeInfo ??= typesInfo.FindTypeInfo(typeof(DataDictionaryItem));
@@ -76,7 +77,7 @@ public sealed class DataDictionariesModule : ModuleBase
                     
                     if (isDataDictionaryItemType)
                     {
-                        Tracing.Tracer.LogText($"=== DataDictionariesModule ===    属性类型是DataDictionaryItem或其子类，继续处理");
+                        Tracing.Tracer.LogText($"===    属性类型是DataDictionaryItem或其子类，继续处理");
                         
                         // 在DataDictionaryItem中添加成员，名称为当前成员与其所在类的信息组合，是为了保证唯一
                         // 字典项成员类型为XPCollection<>，它们之间的关系为一对多
@@ -86,7 +87,7 @@ public sealed class DataDictionariesModule : ModuleBase
 
                         // 关系名也是一个信息的组合，也是为了保证唯一
                         var associationName = $"{persistentTypeInfo.Name}_{member.Name}_{nameof(DataDictionaryItem)}";
-                        Tracing.Tracer.LogText($"=== DataDictionariesModule ===    创建关联: {associationName}");
+                        Tracing.Tracer.LogText($"===    创建关联: {associationName}");
 
                         // 向字典项成员中添加AssociationAttribute，注意其中的类型为elementType，不是字典项成员的类型
                         // 操作成员时，都选择了跳过刷新，刷新会放到后面一起执行（可以减少性能的损耗）
@@ -105,7 +106,7 @@ public sealed class DataDictionariesModule : ModuleBase
                             && member.FindAttribute<DataSourcePropertyAttribute>() == null)
                         {
                             var criteria = $"[DataDictionary.Name]='{attribute.DataDictionaryName}'";
-                            Tracing.Tracer.LogText($"=== DataDictionariesModule ===    添加数据源过滤条件: {criteria}");
+                            Tracing.Tracer.LogText($"===    添加数据源过滤条件 {criteria}");
                             member.AddAttribute(new DataSourceCriteriaAttribute(criteria), true);
                         }
 
@@ -113,16 +114,16 @@ public sealed class DataDictionariesModule : ModuleBase
                         ((XafMemberInfo)member).Refresh();
                         ((XafMemberInfo)dictItemMember).Refresh();
                         
-                        Tracing.Tracer.LogText($"=== DataDictionariesModule ===    属性处理完成: {member.Name}");
+                        Tracing.Tracer.LogText($"===    属性处理完成 {member.Name}");
                     }
                     else
                     {
-                        Tracing.Tracer.LogText($"=== DataDictionariesModule ===    属性类型不是DataDictionaryItem或其子类，跳过处理");
+                        Tracing.Tracer.LogText($"===    属性类型不是DataDictionaryItem或其子类，跳过处理");
                     }
                 }
             }
         }
         
-        Tracing.Tracer.LogText("=== DataDictionariesModule === === DataDictionariesModule.CustomizeTypesInfo 执行完成 ===");
+        Tracing.Tracer.LogText("=== DataDictionariesModule.CustomizeTypesInfo 执行完成===");
     }
 }

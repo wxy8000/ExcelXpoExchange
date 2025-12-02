@@ -1,15 +1,15 @@
-ï»¿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net9.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Version>1.0.0</Version>
-		<!-- NuGetåŒ…é…ç½® -->
+		<!-- NuGet°üÅäÖÃ -->
 		<PackageId>EasyXaf.DataDictionaries</PackageId>
 		<Authors>Your Name</Authors>
 		<Company>Your Company</Company>
-		<Description>EasyXaf Data Dictionaries Module - æä¾›æ•°æ®å­—å…¸ç®¡ç†åŠŸèƒ½</Description>
-		<Copyright>Copyright Â© 2025</Copyright>
+		<Description>EasyXaf Data Dictionaries Module - Ìá¹©Êı¾İ×Öµä¹ÜÀí¹¦ÄÜ</Description>
+		<Copyright>Copyright ? 2025</Copyright>
 		<PackageTags>XAF EasyXaf DataDictionaries</PackageTags>
 		<PackageProjectUrl>https://github.com/yourusername/EasyXaf.DataDictionaries</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/yourusername/EasyXaf.DataDictionaries</RepositoryUrl>

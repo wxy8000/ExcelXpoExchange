@@ -4,16 +4,16 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- NuGetåŒ…é…ç½® -->
+    <!-- NuGet°üÅäÖÃ -->
     <Version>1.0.0</Version>
-    <PackageId>WxyXpoExcel</PackageId>
+    <PackageId>XpoExcelImportExport</PackageId>
     <Authors>Your Name</Authors>
     <Company>Your Company</Company>
-    <Description>WxyXpoExcel Module - æä¾›XPOå¯¹è±¡çš„Excelå¯¼å…¥å¯¼å‡ºåŠŸèƒ½</Description>
-    <Copyright>Copyright Â© 2025</Copyright>
+    <Description>XpoExcelImportExport Module - Ìá¹©XPO¶ÔÏóµÄExcelµ¼Èëµ¼³ö¹¦ÄÜ</Description>
+    <Copyright>Copyright ? 2025</Copyright>
     <PackageTags>XAF XPO Excel ImportExport</PackageTags>
-    <PackageProjectUrl>https://github.com/yourusername/WxyXpoExcel</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/yourusername/WxyXpoExcel</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/yourusername/XpoExcelImportExport</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/yourusername/XpoExcelImportExport</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageOutputPath>../../nupkg</PackageOutputPath>
@@ -27,9 +27,9 @@
     <PackageReference Include="DevExpress.Xpo" Version="25.1.*" />
     <PackageReference Include="NPOI" Version="2.7.5" />
   </ItemGroup>
-
+  
   <ItemGroup>
-    <ProjectReference Include="..\Wxy.Common\Wxy.Common.csproj" />
+    <ProjectReference Include="..\EasyXaf.DataDictionaries\EasyXaf.DataDictionaries.csproj" />
   </ItemGroup>
 
 </Project>

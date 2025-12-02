@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Reflection;
 using DevExpress.Data.Filtering;
@@ -7,7 +7,7 @@ using DevExpress.ExpressApp.Actions;
 using DevExpress.Persistent.Base;
 using DevExpress.Xpo;
 
-namespace WxyXpoExcel
+namespace WxyXaf.XpoExcel
 {
     /// <summary>
     /// 通用Excel导入导出控制器，用于处理带有ExcelImportExportAttribute属性的XPO类

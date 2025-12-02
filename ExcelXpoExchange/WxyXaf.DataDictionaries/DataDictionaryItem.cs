@@ -4,7 +4,7 @@ using DevExpress.Persistent.Validation;
 using DevExpress.Xpo;
 using System.ComponentModel;
 using System.Diagnostics;
-using WxyXpoExcel;
+using WxyXaf.XpoExcel;
 
 namespace WxyXaf.DataDictionaries;
 
@@ -69,7 +69,7 @@ public class DataDictionaryItem : BaseObject
 
     protected override void OnSaving()
     {
-        Tracing.Tracer.LogText("=== DataDictionaryItem.OnSaving 开始执行 ===");
+        Tracing.Tracer.LogText("=== DataDictionaryItem.OnSaving 开始执�?===");
         Tracing.Tracer.LogText($"  对象ID: {Oid}, 名称: {Name}");
         Tracing.Tracer.LogText($"  初始DataDictionary: {(DataDictionary?.Name ?? "null")}");
         Tracing.Tracer.LogText($"  初始Order: {Order}");
@@ -79,7 +79,7 @@ public class DataDictionaryItem : BaseObject
         // 只有在DataDictionary已经设置的情况下才处理
         if (DataDictionary != null)
         {
-            Tracing.Tracer.LogText($"  DataDictionary已设置: {DataDictionary.Name}");
+            Tracing.Tracer.LogText($"  DataDictionary已设置 {DataDictionary.Name}");
             
             if (Order == 0 && DataDictionary.Items.Count > 1)
             {
@@ -93,7 +93,7 @@ public class DataDictionaryItem : BaseObject
             Tracing.Tracer.LogText("  DataDictionary为null，跳过自动关联");
         }
 
-        Tracing.Tracer.LogText($"  设置DataDictionary后的状态: {(DataDictionary?.Name ?? "null")}");
+        Tracing.Tracer.LogText($"  设置DataDictionary后的状态 {(DataDictionary?.Name ?? "null")}");
         
         Tracing.Tracer.LogText("=== DataDictionaryItem.OnSaving 执行完成 ===");
     }

@@ -1,4 +1,4 @@
-﻿using DevExpress.Data.Filtering;
+using DevExpress.Data.Filtering;
 using DevExpress.ExpressApp;
 using DevExpress.ExpressApp.Updating;
 using DevExpress.ExpressApp.Xpo;
