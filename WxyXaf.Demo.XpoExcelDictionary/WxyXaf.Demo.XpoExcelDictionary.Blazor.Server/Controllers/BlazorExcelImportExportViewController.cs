@@ -64,41 +64,42 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.Controllers
         }
 
         /// <summary>
-        /// ��д������ť����¼���ʵ��Blazorƽ̨��Excel��������
+        /// 导出按钮点击事件，实现Blazor平台的Excel导出功能
         /// </summary>
-        /// <param name="sender">�¼�������</param>
-        /// <param name="e">�¼�����</param>
+        /// <param name="sender">事件源</param>
+        /// <param name="e">事件参数</param>
         protected override void ExportAction_Execute(object sender, SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // ʹ��XpoExcelHelper��������
+                // 使用XpoExcelHelper执行导出
                 var excelHelper = new XpoExcelHelper(Application, null);
                 var exportOptions = ExcelImportExportAttribute?.ExportOptions ?? new XpoExcelExportOptions();
 
-                // �������ݵ��ڴ���
+                // 导出数据到内存流
                 var exportMethod = typeof(XpoExcelHelper).GetMethod("ExportToExcelStream", new[] { typeof(CriteriaOperator), typeof(XpoExcelExportOptions) });
                 if (exportMethod == null)
                 {
-                    throw new InvalidOperationException("�޷��ҵ�ExportToExcelStream����");
+                    throw new InvalidOperationException("无法找到ExportToExcelStream方法");
                 }
 
                 var genericExportMethod = exportMethod.MakeGenericMethod(ObjectType);
                 var stream = (MemoryStream)genericExportMethod.Invoke(excelHelper, new object[] { null, exportOptions });
 
-                // ���ڴ���ת��Ϊ�ֽ�����
+                // 将内存流转换为字节数组
                 stream.Position = 0;
                 var bytes = stream.ToArray();
 
-                // ʹ��JavaScript�����������ļ�
+                // 使用JavaScript下载Excel文件
                 if (jsRuntime != null)
                 {
                     var fileName = $"{ObjectType.Name}_导出_{DateTime.Now:yyyyMMddHHmmss}.xlsx";
+                    // 直接传递中文文件名，现代浏览器支持UTF-8编码的文件名
                     jsRuntime.InvokeVoidAsync("downloadFile", fileName, bytes);
 
-                    // ��ʾ�ɹ���Ϣ
+                    // 显示成功信息
                     Application.ShowViewStrategy.ShowMessage(
-                        $"数据已成功导出",
+                        "数据已成功导出",
                         InformationType.Success
                     );
                 }
@@ -112,7 +113,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server.Controllers
             }
             catch (Exception ex)
             {
-                // ��ʾ������Ϣ
+                // 显示错误信息
                 Application.ShowViewStrategy.ShowMessage(
                     $"导出失败：{ex.Message}",
                     InformationType.Error

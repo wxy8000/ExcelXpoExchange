@@ -85,6 +85,9 @@ namespace WxyXaf.XpoExcel
             _platformService = platformService;
             _relatedObjectConverters = new List<IRelatedObjectConverter>();
             
+            // 注册默认关联对象转换器
+            RegisterRelatedObjectConverter(new DefaultRelatedObjectConverter());
+            
             // 注册所有提供的关联对象转换器
             if (relatedObjectConverters != null)
             {
@@ -351,7 +354,31 @@ namespace WxyXaf.XpoExcel
                             if (value is XPBaseObject relatedObj)
                             {
                                 var displayMember = member.MemberInfo.MemberTypeInfo.DefaultMember;
-                                value = relatedObj.GetMemberValue(displayMember?.Name ?? relatedObj.ClassInfo.KeyProperty.Name);
+                                
+                                // 检查是否是ITreeNode类型
+                                var iTreeNodeType = Type.GetType("DevExpress.Persistent.Base.General.ITreeNode, DevExpress.Persistent.Base");
+                                if (iTreeNodeType != null && iTreeNodeType.IsAssignableFrom(relatedObj.GetType()))
+                                {
+                                    // 处理ITreeNode类型，使用"父名称-本名称"格式
+                                    string nodeName = relatedObj.GetMemberValue(displayMember?.Name ?? relatedObj.ClassInfo.KeyProperty.Name).ToString();
+                                    
+                                    // 获取父节点
+                                    var parent = relatedObj.GetMemberValue("Parent") as XPBaseObject;
+                                    if (parent != null)
+                                    {
+                                        string parentName = parent.GetMemberValue(displayMember?.Name ?? parent.ClassInfo.KeyProperty.Name).ToString();
+                                        value = $"{parentName}-{nodeName}";
+                                    }
+                                    else
+                                    {
+                                        value = nodeName;
+                                    }
+                                }
+                                else
+                                {
+                                    // 非ITreeNode类型，使用常规显示
+                                    value = relatedObj.GetMemberValue(displayMember?.Name ?? relatedObj.ClassInfo.KeyProperty.Name);
+                                }
                             }
                             
                             ICell cell = dataRow.CreateCell(i);
@@ -430,54 +457,54 @@ namespace WxyXaf.XpoExcel
         /// <returns>导入结果</returns>
         public ImportResult ImportFromExcel<T>(string filePath, XpoExcelImportOptions options = null) where T : XPBaseObject
         {
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 开始导入文件: {filePath}");
+            Tracing.Tracer.LogText($"ImportFromExcel 开始导入文件: {filePath}");
             
             try
             {
                 // 检查文件是否存在
                 if (!File.Exists(filePath))
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 文件不存在: {filePath}");
+                    Tracing.Tracer.LogText($"ImportFromExcel 文件不存在: {filePath}");
                     return new ImportResult { Errors = { new ImportError { ErrorMessage = $"文件不存在: {filePath}" } } };
                 }
                 
                 IWorkbook workbook;
                 using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 文件流已打开");
+                    Tracing.Tracer.LogText($"ImportFromExcel 文件流已打开");
                     
                     // 根据文件扩展名创建对应的工作簿
                     if (Path.GetExtension(filePath).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 创建XSSF工作簿");
+                        Tracing.Tracer.LogText($"ImportFromExcel 创建XSSF工作簿");
                         workbook = new XSSFWorkbook(fileStream);
                     }
                     else
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 创建HSSF工作簿");
+                        Tracing.Tracer.LogText($"ImportFromExcel 创建HSSF工作簿");
                         workbook = new HSSFWorkbook(fileStream);
                     }
                 }
                 
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 工作簿创建完成，工作表数量: {workbook.NumberOfSheets}");
+                Tracing.Tracer.LogText($"ImportFromExcel 工作簿创建完成，工作表数量: {workbook.NumberOfSheets}");
                 
                 if (workbook.NumberOfSheets <= 0)
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 工作簿中没有工作表");
+                    Tracing.Tracer.LogText($"ImportFromExcel 工作簿中没有工作表");
                     return new ImportResult { Errors = { new ImportError { ErrorMessage = "Excel文件中没有工作表" } } };
                 }
                 
                 var worksheet = workbook.GetSheetAt(0);
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 获取第一个工作表: {worksheet.SheetName}");
+                Tracing.Tracer.LogText($"ImportFromExcel 获取第一个工作表: {worksheet.SheetName}");
                 
                 var result = ImportFromWorksheet<T>(worksheet, options);
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
+                Tracing.Tracer.LogText($"ImportFromExcel 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
                 
                 return result;
             }
             catch (Exception ex)
             {
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromExcel 导入失败: {ex.Message}\n{ex.StackTrace}");
+                Tracing.Tracer.LogText($"ImportFromExcel 导入失败: {ex.Message}\n{ex.StackTrace}");
                 return new ImportResult { Errors = { new ImportError { ErrorMessage = $"导入失败: {ex.Message}" } } };
             }
         }
@@ -536,7 +563,7 @@ namespace WxyXaf.XpoExcel
             options = options ?? new XpoExcelImportOptions();
             var result = new ImportResult();
             
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始导入类型: {typeof(T).Name}");
+            Tracing.Tracer.LogText($"ImportFromWorksheet 开始导入类型: {typeof(T).Name}");
             
             try
             {
@@ -544,43 +571,43 @@ namespace WxyXaf.XpoExcel
                 {
                     if (objectSpace == null)
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法创建对象空间");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 无法创建对象空间");
                         result.Errors.Add(new ImportError { ErrorMessage = "无法创建对象空间" });
                         return result;
                     }
                     
                     var typeInfo = _application.Model.BOModel.GetClass(typeof(T));
                     
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 获取类型信息: {typeInfo?.Name ?? "null"}");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet 获取类型信息: {typeInfo?.Name ?? "null"}");
                     
                     if (typeInfo == null)
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法获取类型信息");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 无法获取类型信息");
                         result.Errors.Add(new ImportError { ErrorMessage = "无法获取类型信息" });
                         return result;
                     }
                     
                     // 特殊处理DataDictionary相关类型（使用反射避免直接引用）
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 实际类型全名: {typeof(T).FullName}");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet 实际类型全名: {typeof(T).FullName}");
                     bool isDataDictionaryType = typeof(T).FullName == "WxyXaf.DataDictionaries.DataDictionary" || typeof(T).Name == "DataDictionary";
                     bool isDataDictionaryItemType = typeof(T).FullName == "WxyXaf.DataDictionaries.DataDictionaryItem" || typeof(T).Name == "DataDictionaryItem";
                     
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet isDataDictionaryType: {isDataDictionaryType}, isDataDictionaryItemType: {isDataDictionaryItemType}");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet isDataDictionaryType: {isDataDictionaryType}, isDataDictionaryItemType: {isDataDictionaryItemType}");
                     
                     if (isDataDictionaryType || isDataDictionaryItemType)
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始特殊处理DataDictionary相关类型导入");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 开始特殊处理DataDictionary相关类型导入");
                         
                         // 读取表头行，获取字典名称
                         var headerRow = worksheet.GetRow(0);
                         if (headerRow == null)
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头为空");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 表头为空");
                             result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头为空" });
                             return result;
                         }
                         
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {headerRow.LastCellNum}");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 表头行单元格数: {headerRow.LastCellNum}");
                         
                         // 直接使用当前泛型类型T，因为此时T就是DataDictionary类型
                         var dataDictionaryType = typeof(T);
@@ -588,7 +615,7 @@ namespace WxyXaf.XpoExcel
                         
                         if (dataDictionaryItemType == null)
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 无法获取DataDictionaryItem类型信息");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 无法获取DataDictionaryItem类型信息");
                             result.Errors.Add(new ImportError { ErrorMessage = "无法获取DataDictionaryItem类型信息" });
                             return result;
                         }
@@ -602,7 +629,7 @@ namespace WxyXaf.XpoExcel
                                 string dictionaryName = cell.StringCellValue;
                                 if (!string.IsNullOrWhiteSpace(dictionaryName))
                                 {
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理字典: {dictionaryName}");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 处理字典: {dictionaryName}");
                                     
                                     // 查找或创建DataDictionary对象
                                     var dataDictionaryCriteria = new BinaryOperator("Name", dictionaryName);
@@ -618,12 +645,12 @@ namespace WxyXaf.XpoExcel
                                                 // 创建新的DataDictionary对象
                                                 dataDictionary = objectSpace.CreateObject(dataDictionaryType) as XPBaseObject;
                                                 dataDictionary.SetMemberValue("Name", dictionaryName);
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
                                                 result.SuccessCount++;
                                             }
                                             else
                                             {
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet DataDictionary已存在，跳过: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet DataDictionary已存在，跳过: {dictionaryName}");
                                             }
                                             break;
                                             
@@ -633,12 +660,12 @@ namespace WxyXaf.XpoExcel
                                             {
                                                 // 更新DataDictionary对象（目前只处理Name字段）
                                                 dataDictionary.SetMemberValue("Name", dictionaryName);
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 更新现有DataDictionary: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet 更新现有DataDictionary: {dictionaryName}");
                                                 result.SuccessCount++;
                                             }
                                             else
                                             {
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet DataDictionary不存在，跳过: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet DataDictionary不存在，跳过: {dictionaryName}");
                                             }
                                             break;
                                             
@@ -649,13 +676,13 @@ namespace WxyXaf.XpoExcel
                                                 // 创建新的DataDictionary对象
                                                 dataDictionary = objectSpace.CreateObject(dataDictionaryType) as XPBaseObject;
                                                 dataDictionary.SetMemberValue("Name", dictionaryName);
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
                                             }
                                             else
                                             {
                                                 // 更新DataDictionary对象
                                                 dataDictionary.SetMemberValue("Name", dictionaryName);
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 更新现有DataDictionary: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet 更新现有DataDictionary: {dictionaryName}");
                                             }
                                             result.SuccessCount++;
                                             break;
@@ -666,12 +693,12 @@ namespace WxyXaf.XpoExcel
                                             {
                                                 // 删除现有对象
                                                 objectSpace.Delete(dataDictionary);
-                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有DataDictionary: {dictionaryName}");
+                                                Tracing.Tracer.LogText($"ImportFromWorksheet 删除现有DataDictionary: {dictionaryName}");
                                             }
                                             // 创建新的DataDictionary对象
                                             dataDictionary = objectSpace.CreateObject(dataDictionaryType) as XPBaseObject;
                                             dataDictionary.SetMemberValue("Name", dictionaryName);
-                                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
+                                            Tracing.Tracer.LogText($"ImportFromWorksheet 创建新DataDictionary: {dictionaryName}");
                                             result.SuccessCount++;
                                             break;
                                     }
@@ -692,7 +719,7 @@ namespace WxyXaf.XpoExcel
                                                     string itemName = itemCell.StringCellValue;
                                                     if (!string.IsNullOrWhiteSpace(itemName))
                                                     {
-                                                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理字典项: {dictionaryName} -> {itemName}");
+                                                        Tracing.Tracer.LogText($"ImportFromWorksheet 处理字典项: {dictionaryName} -> {itemName}");
                                                         
                                                         // 检查当前字典下是否已存在同名的字典项
                                                         var itemCriteria = GroupOperator.And(
@@ -716,11 +743,11 @@ namespace WxyXaf.XpoExcel
                                                                     item.SetMemberValue("DataDictionary", dataDictionary);
                                                                     
                                                                     result.SuccessCount++;
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
                                                                 }
                                                                 else
                                                                 {
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字典项已存在，跳过: {dictionaryName} -> {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 字典项已存在，跳过: {dictionaryName} -> {itemName}");
                                                                 }
                                                                 break;
                                                                 
@@ -733,11 +760,11 @@ namespace WxyXaf.XpoExcel
                                                                     existingItem.SetMemberValue("DataDictionary", dataDictionary);
                                                                     
                                                                     result.SuccessCount++;
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功更新DataDictionaryItem: {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 成功更新DataDictionaryItem: {itemName}");
                                                                 }
                                                                 else
                                                                 {
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字典项不存在，跳过: {dictionaryName} -> {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 字典项不存在，跳过: {dictionaryName} -> {itemName}");
                                                                 }
                                                                 break;
                                                                 
@@ -753,7 +780,7 @@ namespace WxyXaf.XpoExcel
                                                                     item.SetMemberValue("DataDictionary", dataDictionary);
                                                                     
                                                                     result.SuccessCount++;
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
                                                                 }
                                                                 else
                                                                 {
@@ -762,7 +789,7 @@ namespace WxyXaf.XpoExcel
                                                                     existingItem.SetMemberValue("DataDictionary", dataDictionary);
                                                                     
                                                                     result.SuccessCount++;
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功更新DataDictionaryItem: {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 成功更新DataDictionaryItem: {itemName}");
                                                                 }
                                                                 break;
                                                                 
@@ -772,7 +799,7 @@ namespace WxyXaf.XpoExcel
                                                                 {
                                                                     // 删除现有字典项
                                                                     objectSpace.Delete(existingItem);
-                                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有DataDictionaryItem: {itemName}");
+                                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 删除现有DataDictionaryItem: {itemName}");
                                                                 }
                                                                 
                                                                 // 创建新的DataDictionaryItem对象
@@ -783,7 +810,7 @@ namespace WxyXaf.XpoExcel
                                                                 newItem.SetMemberValue("DataDictionary", dataDictionary);
                                                                 
                                                                 result.SuccessCount++;
-                                                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
+                                                                Tracing.Tracer.LogText($"ImportFromWorksheet 成功创建DataDictionaryItem: {itemName}");
                                                                 break;
                                                         }
                                                     }
@@ -802,13 +829,13 @@ namespace WxyXaf.XpoExcel
                             {
                                 try
                                 {
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 开始提交事务");
                                     objectSpace.CommitChanges();
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 事务提交成功");
                                 }
                                 catch (Exception commitEx)
                                 {
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 事务提交失败: {commitEx.Message}");
                                     result.Errors.Add(new ImportError
                                     {
                                         RowIndex = -1,
@@ -820,13 +847,13 @@ namespace WxyXaf.XpoExcel
                             }
                             else
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 没有成功记录，跳过事务提交");
                             }
                         }
                         else
                         {
                             // 有失败记录或错误，回滚所有更改
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 有失败记录或错误，回滚所有更改");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 有失败记录或错误，回滚所有更改");
                             objectSpace.Rollback();
                             // 重置成功记录计数，因为所有更改都被回滚了
                             result.SuccessCount = 0;
@@ -839,12 +866,12 @@ namespace WxyXaf.XpoExcel
                     var normalHeaderRow = worksheet.GetRow(0);
                     if (normalHeaderRow == null)
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头为空");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 表头为空");
                         result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头为空" });
                         return result;
                     }
                     
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头行单元格数: {normalHeaderRow.LastCellNum}");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet 表头行单元格数: {normalHeaderRow.LastCellNum}");
                     
                     var fieldMappings = new Dictionary<int, IModelMember>();
                     for (int c = 0; c < normalHeaderRow.LastCellNum; c++)
@@ -853,7 +880,7 @@ namespace WxyXaf.XpoExcel
                         if (cell != null)
                         {
                             var fieldCaption = cell.StringCellValue;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理表头单元格 {c}: {fieldCaption}");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 处理表头单元格 {c}: {fieldCaption}");
                             
                             // 尝试多种匹配方式
                             var member = typeInfo.AllMembers.SingleOrDefault(x => x.Caption == fieldCaption) ??
@@ -861,31 +888,31 @@ namespace WxyXaf.XpoExcel
                             if (member != null)
                             {
                                 fieldMappings.Add(c, member);
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段映射: {fieldCaption} -> {member.Name}");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 字段映射: {fieldCaption} -> {member.Name}");
                             }
                             else
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到字段映射: {fieldCaption}");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 未找到字段映射: {fieldCaption}");
                             }
                         }
                         else
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 表头单元格 {c} 为空");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 表头单元格 {c} 为空");
                         }
                     }
                     
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段映射完成，共 {fieldMappings.Count} 个字段");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet 字段映射完成，共 {fieldMappings.Count} 个字段");
                     
                     // 如果没有找到任何字段映射，返回错误
                     if (fieldMappings.Count == 0)
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有找到任何字段映射");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 没有找到任何字段映射");
                         result.Errors.Add(new ImportError { ErrorMessage = "Excel文件表头与对象字段不匹配，请检查列标题是否正确" });
                         return result;
                     }
                     
                     // 读取数据行
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据行范围: 1 - {worksheet.LastRowNum}");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet 数据行范围: 1 - {worksheet.LastRowNum}");
                     
                     int processedRowCount = 0;
                     for (int r = 1; r <= worksheet.LastRowNum; r++)
@@ -893,12 +920,12 @@ namespace WxyXaf.XpoExcel
                         var dataRow = worksheet.GetRow(r);
                         if (dataRow == null)
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行为空，跳过");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 第 {r} 行为空，跳过");
                             continue;
                         }
                         
                         processedRowCount++;
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理第 {r} 行数据，单元格数: {dataRow.LastCellNum}");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 处理第 {r} 行数据，单元格数: {dataRow.LastCellNum}");
                         
                         T obj = null;
                         bool isNewObject = false;
@@ -910,7 +937,7 @@ namespace WxyXaf.XpoExcel
                                 // 仅新建
                                 obj = objectSpace.CreateObject<T>();
                                 isNewObject = true;
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 创建新对象(仅新建模式)");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 创建新对象(仅新建模式)");
                                 break;
                                 
                             case ImportMode.UpdateOnly:
@@ -918,11 +945,11 @@ namespace WxyXaf.XpoExcel
                                 obj = FindExistingObject<T>(worksheet, r, fieldMappings, objectSpace, options);
                                 if (obj == null)
                                 {
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 未找到现有对象，跳过更新");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 未找到现有对象，跳过更新");
                                     // 不要递增FailureCount，因为这不是失败，而是预期的跳过
                                     continue;
                                 }
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 找到现有对象进行更新");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 找到现有对象进行更新");
                                 break;
                                 
                             case ImportMode.CreateAndUpdate:
@@ -930,7 +957,7 @@ namespace WxyXaf.XpoExcel
                                 obj = FindExistingObject<T>(worksheet, r, fieldMappings, objectSpace, options) ?? 
                                       objectSpace.CreateObject<T>();
                                 isNewObject = (obj != null && objectSpace.IsNewObject(obj));
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet {(isNewObject ? "创建新对象" : "更新现有对象")}(新建和更新模式)");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet {(isNewObject ? "创建新对象" : "更新现有对象")}(新建和更新模式)");
                                 break;
                                 
                             case ImportMode.DeleteAndUpdate:
@@ -940,18 +967,18 @@ namespace WxyXaf.XpoExcel
                                 {
                                     // 删除现有对象
                                     objectSpace.Delete(existingObj);
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除现有对象");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 删除现有对象");
                                 }
                                 // 创建新对象
                                 obj = objectSpace.CreateObject<T>();
                                 isNewObject = true;
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除后创建新对象");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 删除后创建新对象");
                                 break;
                         }
                         
                         if (obj == null)
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 对象创建失败");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 对象创建失败");
                             result.FailureCount++;
                             result.Errors.Add(new ImportError
                             {
@@ -977,7 +1004,7 @@ namespace WxyXaf.XpoExcel
                                 try
                                 {
                                     var value = ConvertCellValue(cell, member, objectSpace);
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值: {member.Name} = {value?.ToString() ?? "null"}");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 设置字段值: {member.Name} = {value?.ToString() ?? "null"}");
                                     
                                     // 检查字段是否要求唯一
                                     // 使用member.MemberInfo.Owner.Type获取包含该属性的类类型，而不是属性的类型
@@ -1058,11 +1085,11 @@ namespace WxyXaf.XpoExcel
                                                 if (options.Mode == ImportMode.CreateOnly)
                                                 {
                                                     // CreateOnly模式：如果记录已存在，跳过该记录
-                                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 字段 '{member.Name}' 的值 '{value}' 已存在，跳过该记录");
+                                                    Tracing.Tracer.LogText($"ImportFromWorksheet 字段 '{member.Name}' 的值 '{value}' 已存在，跳过该记录");
                                                     // 如果对象是新创建的，从objectSpace中删除，避免空记录被保存
                                                     if (isNewObject)
                                                     {
-                                                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 删除新创建的重复对象，避免空记录");
+                                                        Tracing.Tracer.LogText($"ImportFromWorksheet 删除新创建的重复对象，避免空记录");
                                                         objectSpace.Delete(obj);
                                                     }
                                                     // 使用goto跳过当前记录，但不设置rowHasError为true
@@ -1083,7 +1110,7 @@ namespace WxyXaf.XpoExcel
                                 }
                                 catch (Exception ex)
                                 {
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 设置字段值失败: {member.Name}, 错误: {ex.Message}");
+                                    Tracing.Tracer.LogText($"ImportFromWorksheet 设置字段值失败: {member.Name}, 错误: {ex.Message}");
                                     result.Errors.Add(new ImportError
                                     {
                                         RowIndex = r,
@@ -1095,32 +1122,32 @@ namespace WxyXaf.XpoExcel
                             }
                             else
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 单元格 {columnIndex} 为空，跳过字段: {member.Name}");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 单元格 {columnIndex} 为空，跳过字段: {member.Name}");
                             }
                         }
                         
                         SkipRecord: // 跳过记录的标签
                         
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行填充了 {filledFieldCount} 个字段");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 第 {r} 行填充了 {filledFieldCount} 个字段");
                         
                         if (!rowHasError)
                         {
                             result.SuccessCount++;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行处理成功");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 第 {r} 行处理成功");
                         }
                         else
                         {
                             result.FailureCount++;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 第 {r} 行处理失败");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 第 {r} 行处理失败");
                             if (options.StopOnError)
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 遇到错误停止导入");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 遇到错误停止导入");
                                 break;
                             }
                         }
                     }
                     
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 数据处理完成，处理行数: {processedRowCount}，成功: {result.SuccessCount}, 失败: {result.FailureCount}");
+                    Tracing.Tracer.LogText($"ImportFromWorksheet 数据处理完成，处理行数: {processedRowCount}，成功: {result.SuccessCount}, 失败: {result.FailureCount}");
                     
                     // 提交事务 - 只有当没有失败记录时才提交
                     if (result.FailureCount == 0 && result.Errors.Count == 0)
@@ -1129,13 +1156,13 @@ namespace WxyXaf.XpoExcel
                         {
                             try
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 开始提交事务");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 开始提交事务");
                                 objectSpace.CommitChanges();
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交成功");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 事务提交成功");
                             }
                             catch (Exception commitEx)
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 事务提交失败: {commitEx.Message}");
+                                Tracing.Tracer.LogText($"ImportFromWorksheet 事务提交失败: {commitEx.Message}");
                                 // 如果提交失败，记录错误并回滚
                                 result.Errors.Add(new ImportError
                                 {
@@ -1148,13 +1175,13 @@ namespace WxyXaf.XpoExcel
                         }
                         else
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 没有成功记录，跳过事务提交");
+                            Tracing.Tracer.LogText($"ImportFromWorksheet 没有成功记录，跳过事务提交");
                         }
                     }
                     else
                     {
                         // 有失败记录或错误，回滚所有更改
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 有失败记录或错误，回滚所有更改");
+                        Tracing.Tracer.LogText($"ImportFromWorksheet 有失败记录或错误，回滚所有更改");
                         objectSpace.Rollback();
                         // 重置成功记录计数，因为所有更改都被回滚了
                         result.SuccessCount = 0;
@@ -1163,7 +1190,7 @@ namespace WxyXaf.XpoExcel
             }
             catch (Exception ex)
             {
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 处理过程中发生异常: {ex.Message}\n{ex.StackTrace}");
+                Tracing.Tracer.LogText($"ImportFromWorksheet 处理过程中发生异常: {ex.Message}\n{ex.StackTrace}");
                 result.Errors.Add(new ImportError
                 {
                     RowIndex = -1,
@@ -1172,7 +1199,7 @@ namespace WxyXaf.XpoExcel
                 });
             }
             
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ImportFromWorksheet 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
+            Tracing.Tracer.LogText($"ImportFromWorksheet 导入完成，成功: {result.SuccessCount}, 失败: {result.FailureCount}, 错误数: {result.Errors.Count}");
             
             return result;
         }
@@ -1182,11 +1209,11 @@ namespace WxyXaf.XpoExcel
         /// </summary>
         private T FindExistingObject<T>(ISheet worksheet, int rowIndex, Dictionary<int, IModelMember> fieldMappings, XPObjectSpace objectSpace, XpoExcelImportOptions options) where T : XPBaseObject
         {
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 开始查找现有对象，行索引: {rowIndex}");
+            Tracing.Tracer.LogText($"FindExistingObject 开始查找现有对象，行索引: {rowIndex}");
             
             if (!string.IsNullOrEmpty(options.KeyMember))
             {
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用指定关键字段: {options.KeyMember}");
+                Tracing.Tracer.LogText($"FindExistingObject 使用指定关键字段: {options.KeyMember}");
                 
                 // 使用指定的关键字段查找
                 var keyMapping = fieldMappings.FirstOrDefault(x => x.Value.Name == options.KeyMember);
@@ -1199,7 +1226,7 @@ namespace WxyXaf.XpoExcel
                         if (cell != null)
                         {
                             var keyValue = ConvertCellValue(cell, keyMapping.Value, objectSpace);
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
+                            Tracing.Tracer.LogText($"FindExistingObject 关键字段值: {keyValue}");
                             
                             // 直接使用keyValue作为查询值，不转换为字符串，避免类型不匹配
                             var criteria = new BinaryOperator(options.KeyMember, keyValue);
@@ -1207,28 +1234,28 @@ namespace WxyXaf.XpoExcel
                             
                             if (result != null)
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到现有对象");
+                                Tracing.Tracer.LogText($"FindExistingObject 找到现有对象");
                             }
                             else
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到现有对象");
+                                Tracing.Tracer.LogText($"FindExistingObject 未找到现有对象");
                             }
                             
                             return result;
                         }
                         else
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段单元格为空");
+                            Tracing.Tracer.LogText($"FindExistingObject 关键字段单元格为空");
                         }
                     }
                     else
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 数据行为空");
+                        Tracing.Tracer.LogText($"FindExistingObject 数据行为空");
                     }
                 }
                 else
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到关键字段映射");
+                    Tracing.Tracer.LogText($"FindExistingObject 未找到关键字段映射");
                 }
             }
             
@@ -1257,7 +1284,7 @@ namespace WxyXaf.XpoExcel
                         if (fieldAttribute != null && fieldAttribute.IsUnique)
                         {
                             keyMember = member;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到IsUnique=true的字段: {keyMember.Name}");
+                            Tracing.Tracer.LogText($"FindExistingObject 找到IsUnique=true的字段: {keyMember.Name}");
                             break;
                         }
                     }
@@ -1296,7 +1323,7 @@ namespace WxyXaf.XpoExcel
             
             if (keyMember != null)
             {
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 使用默认关键字段: {keyMember.Name}");
+                Tracing.Tracer.LogText($"FindExistingObject 使用默认关键字段: {keyMember.Name}");
                 
                 var keyMapping = fieldMappings.FirstOrDefault(x => x.Value.Name == keyMember.Name);
                 if (keyMapping.Value != null)
@@ -1308,7 +1335,7 @@ namespace WxyXaf.XpoExcel
                         if (cell != null)
                         {
                             var keyValue = ConvertCellValue(cell, keyMapping.Value, objectSpace);
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段值: {keyValue}");
+                            Tracing.Tracer.LogText($"FindExistingObject 关键字段值: {keyValue}");
                             
                             // 直接使用keyValue作为查询值，不转换为字符串，避免类型不匹配
                             var criteria = new BinaryOperator(keyMember.Name, keyValue);
@@ -1316,36 +1343,36 @@ namespace WxyXaf.XpoExcel
                             
                             if (result != null)
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 找到现有对象");
+                                Tracing.Tracer.LogText($"FindExistingObject 找到现有对象");
                             }
                             else
                             {
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到现有对象");
+                                Tracing.Tracer.LogText($"FindExistingObject 未找到现有对象");
                             }
                             
                             return result;
                         }
                         else
                         {
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 关键字段单元格为空");
+                            Tracing.Tracer.LogText($"FindExistingObject 关键字段单元格为空");
                         }
                     }
                     else
                     {
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 数据行为空");
+                        Tracing.Tracer.LogText($"FindExistingObject 数据行为空");
                     }
                 }
                 else
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到关键字段映射");
+                    Tracing.Tracer.LogText($"FindExistingObject 未找到关键字段映射");
                 }
             }
             else
             {
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 未找到类型关键字段");
+                Tracing.Tracer.LogText($"FindExistingObject 未找到类型关键字段");
             }
             
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] FindExistingObject 返回null");
+            Tracing.Tracer.LogText($"FindExistingObject 返回null");
             return null;
         }
         
@@ -1354,18 +1381,18 @@ namespace WxyXaf.XpoExcel
         /// </summary>
         private object ConvertCellValue(ICell cell, IModelMember member, XPObjectSpace objectSpace)
         {
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 开始转换单元格值: 列={cell.ColumnIndex}, 行={cell.RowIndex}, 字段={member.Name}");
+            Tracing.Tracer.LogText($"ConvertCellValue 开始转换单元格值: 列={cell.ColumnIndex}, 行={cell.RowIndex}, 字段={member.Name}");
             
             var memberType = member.MemberInfo.MemberType;
             
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 成员类型: {memberType.FullName}");
+            Tracing.Tracer.LogText($"ConvertCellValue 成员类型: {memberType.FullName}");
             
             // 处理可空类型
             if (memberType.IsValueType && memberType.IsGenericType && 
                 memberType.GetGenericTypeDefinition() == typeof(Nullable<>))
             {
                 memberType = memberType.GetGenericArguments()[0];
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 处理可空类型，基础类型: {memberType.FullName}");
+                Tracing.Tracer.LogText($"ConvertCellValue 处理可空类型，基础类型: {memberType.FullName}");
             }
             
             // 获取单元格值
@@ -1375,7 +1402,7 @@ namespace WxyXaf.XpoExcel
             {
                 case CellType.String:
                     cellValue = cell.StringCellValue;
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 字符串类型值: {cellValue}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 字符串类型值: {cellValue}");
                     break;
                 case CellType.Numeric:
                     // 对于数值类型，需要特别处理
@@ -1391,25 +1418,25 @@ namespace WxyXaf.XpoExcel
                             dateValue.Value.Year > 1900) // 如果年份大于1900，很可能是真正的日期
                         {
                             cellValue = dateValue.Value;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 日期类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"ConvertCellValue 日期类型值: {cellValue}");
                         }
                         else
                         {
                             // 不是有效的日期，作为数字处理
                             cellValue = cell.NumericCellValue;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 数字类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"ConvertCellValue 数字类型值: {cellValue}");
                         }
                     }
                     catch
                     {
                         // 转换失败，作为数字处理
                         cellValue = cell.NumericCellValue;
-                        Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 数字类型值(异常处理): {cellValue}");
+                        Tracing.Tracer.LogText($"ConvertCellValue 数字类型值(异常处理): {cellValue}");
                     }
                     break;
                 case CellType.Boolean:
                     cellValue = cell.BooleanCellValue;
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 布尔类型值: {cellValue}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 布尔类型值: {cellValue}");
                     break;
                 case CellType.Formula:
                     // 计算公式结果
@@ -1417,7 +1444,7 @@ namespace WxyXaf.XpoExcel
                     {
                         case CellType.String:
                             cellValue = cell.StringCellValue;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式字符串类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"ConvertCellValue 公式字符串类型值: {cellValue}");
                             break;
                         case CellType.Numeric:
                             // 对于公式计算的数值，同样需要判断是否为日期
@@ -1429,47 +1456,47 @@ namespace WxyXaf.XpoExcel
                                     dateValue.Value.Year > 1900)
                                 {
                                     cellValue = dateValue.Value;
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式日期类型值: {cellValue}");
+                                    Tracing.Tracer.LogText($"ConvertCellValue 公式日期类型值: {cellValue}");
                                 }
                                 else
                                 {
                                     // 不是有效的日期，作为数字处理
                                     cellValue = cell.NumericCellValue;
-                                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式数字类型值: {cellValue}");
+                                    Tracing.Tracer.LogText($"ConvertCellValue 公式数字类型值: {cellValue}");
                                 }
                             }
                             catch
                             {
                                 // 转换失败，作为数字处理
                                 cellValue = cell.NumericCellValue;
-                                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式数字类型值(异常处理): {cellValue}");
+                                Tracing.Tracer.LogText($"ConvertCellValue 公式数字类型值(异常处理): {cellValue}");
                             }
                             break;
                         case CellType.Boolean:
                             cellValue = cell.BooleanCellValue;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式布尔类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"ConvertCellValue 公式布尔类型值: {cellValue}");
                             break;
                         default:
                             cellValue = cell.StringCellValue;
-                            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 公式默认类型值: {cellValue}");
+                            Tracing.Tracer.LogText($"ConvertCellValue 公式默认类型值: {cellValue}");
                             break;
                     }
                     break;
                 default:
                     cellValue = string.Empty;
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 默认类型值: {cellValue}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 默认类型值: {cellValue}");
                     break;
             }
             
             // 处理关联对象
             if (typeof(XPBaseObject).IsAssignableFrom(memberType))
             {
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 处理关联对象类型: {memberType.Name}");
+                Tracing.Tracer.LogText($"ConvertCellValue 处理关联对象类型: {memberType.Name}");
                 
                 // 如果单元格值为空，返回null
                 if (cellValue == null || (cellValue is string str && string.IsNullOrWhiteSpace(str)))
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 关联对象单元格值为空，返回null");
+                    Tracing.Tracer.LogText($"ConvertCellValue 关联对象单元格值为空，返回null");
                     return null;
                 }
                 
@@ -1477,14 +1504,14 @@ namespace WxyXaf.XpoExcel
                 var converter = GetRelatedObjectConverter(memberType);
                 if (converter != null)
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 找到适合的关联对象转换器: {converter.GetType().Name}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 找到适合的关联对象转换器: {converter.GetType().Name}");
                     // 使用转换器转换值
                     return converter.Convert(cellValue, member, objectSpace);
                 }
                 else
                 {
                     // 没有找到适合的转换器，返回null
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 没有找到适合的关联对象转换器，返回null");
+                    Tracing.Tracer.LogText($"ConvertCellValue 没有找到适合的关联对象转换器，返回null");
                     return null;
                 }
             }
@@ -1495,18 +1522,18 @@ namespace WxyXaf.XpoExcel
                 // 处理空字符串情况
                 if (cellValue == null || (cellValue is string str && string.IsNullOrWhiteSpace(str)))
                 {
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 空字符串转换为DateTime，返回DateTime.MinValue");
+                    Tracing.Tracer.LogText($"ConvertCellValue 空字符串转换为DateTime，返回DateTime.MinValue");
                     return DateTime.MinValue;
                 }
                 
                 var result = Convert.ToDateTime(cellValue);
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为DateTime: {result}");
+                Tracing.Tracer.LogText($"ConvertCellValue 转换为DateTime: {result}");
                 return result;
             }
             else if (memberType == typeof(bool))
             {
                 var result = Convert.ToBoolean(cellValue);
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为Boolean: {result}");
+                Tracing.Tracer.LogText($"ConvertCellValue 转换为Boolean: {result}");
                 return result;
             }
             else if (memberType.IsEnum)
@@ -1514,13 +1541,13 @@ namespace WxyXaf.XpoExcel
                 if (cellValue is double numericValue)
                 {
                     var result = Enum.ToObject(memberType, numericValue);
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为枚举(数字): {result}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 转换为枚举(数字): {result}");
                     return result;
                 }
                 else
                 {
                     var result = Enum.Parse(memberType, cellValue.ToString());
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为枚举(字符串): {result}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 转换为枚举(字符串): {result}");
                     return result;
                 }
             }
@@ -1540,24 +1567,24 @@ namespace WxyXaf.XpoExcel
                         numericValue += 1;
                     
                     var result = Convert.ChangeType(numericValue, memberType);
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换Excel日期数值为{memberType.Name}: {result}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 转换Excel日期数值为{memberType.Name}: {result}");
                     return result;
                 }
                 else
                 {
                     var result = Convert.ChangeType(cellValue, memberType);
-                    Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为数值类型: {result}");
+                    Tracing.Tracer.LogText($"ConvertCellValue 转换为数值类型: {result}");
                     return result;
                 }
             }
             else if (memberType.IsValueType || memberType == typeof(string))
             {
                 var result = Convert.ChangeType(cellValue, memberType);
-                Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 转换为基本类型: {result}");
+                Tracing.Tracer.LogText($"ConvertCellValue 转换为基本类型: {result}");
                 return result;
             }
             
-            Tracing.Tracer.LogText($"[{DateTime.Now:HH:mm:ss.fff}] ConvertCellValue 返回原始值: {cellValue}");
+            Tracing.Tracer.LogText($"ConvertCellValue 返回原始值: {cellValue}");
             return cellValue;
         }
         
@@ -1719,3 +1746,6 @@ namespace WxyXaf.XpoExcel
         public List<string> IncludedMembers { get; set; }
     }
 }
+
+
+

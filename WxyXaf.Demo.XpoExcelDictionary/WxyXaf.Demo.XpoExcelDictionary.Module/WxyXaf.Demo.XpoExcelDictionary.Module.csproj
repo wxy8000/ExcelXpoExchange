@@ -21,6 +21,7 @@
     <PackageReference Include="DevExpress.ExpressApp.CodeAnalysis" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.ConditionalAppearance" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.Objects" Version="25.1.*" />
+    <PackageReference Include="DevExpress.ExpressApp.TreeListEditors" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.Validation" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.Xpo" Version="25.1.*" />
     <PackageReference Include="DevExpress.Persistent.Base" Version="25.1.*" />
@@ -34,8 +35,5 @@
     <ProjectReference Include="..\\WxyXaf.Common\\WxyXaf.Common.csproj" />
     <ProjectReference Include="..\WxyXaf.DataDictionaries\WxyXaf.DataDictionaries.csproj" />
     <ProjectReference Include="..\\WxyXaf.XpoExcel\\WxyXaf.XpoExcel.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="BusinessObjects\" />
   </ItemGroup>
 </Project>

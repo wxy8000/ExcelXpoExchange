@@ -14,18 +14,18 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
     public class WinExcelImportExportViewController : ExcelImportExportViewController
     {
         /// <summary>
-        /// ִ�е��������ʵ��WinFormsƽ̨��Excel���빦��
+        /// 执行导入操作，实现WinForms平台的Excel导入功能
         /// </summary>
-        /// <param name="e">�¼�����</param>
+        /// <param name="e">事件参数</param>
         protected override void ExecuteImportAction(SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // ��ʾWinForms�ļ�ѡ��Ի���
+                // 显示WinForms文件选择对话框
                 using (OpenFileDialog openFileDialog = new OpenFileDialog())
                 {
-                    openFileDialog.Title = "ѡ��Excel�ļ�";
-                    openFileDialog.Filter = "Excel�ļ� (*.xlsx)|*.xlsx|Excel 97-2003�ļ� (*.xls)|*.xls|�����ļ� (*.*)|*.*";
+                    openFileDialog.Title = "选择Excel文件";
+                    openFileDialog.Filter = "Excel文件 (*.xlsx)|*.xlsx|Excel 97-2003文件 (*.xls)|*.xls|所有文件 (*.*)|*.*";
                     openFileDialog.FilterIndex = 1;
                     openFileDialog.RestoreDirectory = true;
 
@@ -33,30 +33,30 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                     {
                         string filePath = openFileDialog.FileName;
 
-                        // ��ʾ����ģʽѡ��Ի���
+                        // 显示导入模式选择对话框
                         using (var dialog = new ImportModeDialog())
                         {
                             if (dialog.ShowDialog() == DialogResult.OK)
                             {
                                 ImportMode importMode = dialog.SelectedMode;
 
-                                // ����XpoExcelHelperʵ������ע��DataDictionaryItemConverter
-                            var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
-                            var excelHelper = new XpoExcelHelper(Application, null, new[] { dataDictionaryItemConverter });
+                                // 创建XpoExcelHelper实例，注意DataDictionaryItemConverter
+                                var dataDictionaryItemConverter = new WxyXaf.DataDictionaries.DataDictionaryItemConverter();
+                                var excelHelper = new XpoExcelHelper(Application, null, new[] { dataDictionaryItemConverter });
 
-                                // ִ�е���
+                                // 执行导入
                                 var importOptions = new XpoExcelImportOptions
                                 {
                                     Mode = importMode,
                                     StopOnError = false
                                 };
 
-                                // ʹ�÷�����÷��ͷ���
+                                // 使用反射调用泛型方法
                                 var importMethod = typeof(XpoExcelHelper).GetMethod("ImportFromExcel", new[] { typeof(string), typeof(XpoExcelImportOptions) });
                                 if (importMethod == null)
                                 {
                                     Application.ShowViewStrategy.ShowMessage(
-                                        "�޷��ҵ�ImportFromExcel����",
+                                        "无法找到ImportFromExcel方法",
                                         InformationType.Error
                                     );
                                     return;
@@ -65,15 +65,15 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                                 var genericImportMethod = importMethod.MakeGenericMethod(ObjectType);
                                 var result = (ImportResult)genericImportMethod.Invoke(excelHelper, new object[] { filePath, importOptions });
 
-                                // ��ʾ������
+                                // 显示导入结果
                                 Application.ShowViewStrategy.ShowMessage(
                                     result.HasErrors
-                                        ? $"����ʧ�ܣ��ɹ�{result.SuccessCount}����ʧ��{result.FailureCount}����������Ϣ��{string.Join(Environment.NewLine, result.Errors.Select(e => e.ErrorMessage))}"
-                                        : $"����ɹ�����{result.SuccessCount}����¼",
+                                        ? $"导入失败，成功{result.SuccessCount}条，失败{result.FailureCount}条，错误信息：{string.Join(Environment.NewLine, result.Errors.Select(err => err.ErrorMessage))}"
+                                        : $"导入成功，共{result.SuccessCount}条记录",
                                     result.HasErrors ? InformationType.Error : InformationType.Success
                                 );
 
-                                // ˢ����ͼ����ʾ�µ��������
+                                // 刷新列表视图显示新的导入数据
                                 View.RefreshDataSource();
                             }
                         }
@@ -82,24 +82,24 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
             }
             catch (Exception ex)
             {
-                Application.ShowViewStrategy.ShowMessage($"����Excelʧ�ܣ�{ex.Message}", InformationType.Error);
+                Application.ShowViewStrategy.ShowMessage($"导入Excel失败：{ex.Message}", InformationType.Error);
             }
         }
 
         /// <summary>
-        /// ��д������ť����¼���ʵ��WinFormsƽ̨��Excel��������
+        /// 导出按钮点击事件，实现WinForms平台的Excel导出功能
         /// </summary>
-        /// <param name="sender">�¼�������</param>
-        /// <param name="e">�¼�����</param>
+        /// <param name="sender">事件源</param>
+        /// <param name="e">事件参数</param>
         protected override void ExportAction_Execute(object sender, SimpleActionExecuteEventArgs e)
         {
             try
             {
-                // ʹ��XpoExcelHelper��������
+                // 使用XpoExcelHelper执行导出
                 var excelHelper = new XpoExcelHelper(Application, null);
                 var exportOptions = ExcelImportExportAttribute?.ExportOptions ?? new XpoExcelExportOptions();
 
-                // ��ʾWinForms�ļ�����Ի���
+                // 显示WinForms文件保存对话框
                 using (SaveFileDialog saveFileDialog = new SaveFileDialog())
                 {
                     saveFileDialog.Title = "保存Excel文件";
@@ -112,7 +112,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                     {
                         string filePath = saveFileDialog.FileName;
 
-                        // �������ݵ��ļ�
+                        // 导出数据到文件
                         var exportMethod = typeof(XpoExcelHelper).GetMethod("ExportToExcel", new[] { typeof(string), typeof(CriteriaOperator), typeof(XpoExcelExportOptions) });
                         if (exportMethod == null)
                         {
@@ -122,7 +122,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                         var genericExportMethod = exportMethod.MakeGenericMethod(ObjectType);
                         genericExportMethod.Invoke(excelHelper, new object[] { filePath, null, exportOptions });
 
-                        // ��ʾ�ɹ���Ϣ
+                        // 显示成功信息
                         Application.ShowViewStrategy.ShowMessage(
                             $"数据已成功导出到{filePath}",
                             InformationType.Success
@@ -132,16 +132,16 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
             }
             catch (Exception ex)
             {
-                // ��ʾ������Ϣ
+                // 显示错误信息
                 Application.ShowViewStrategy.ShowMessage(
-                    $"����ʧ�ܣ�{ex.Message}",
+                    $"导出失败：{ex.Message}",
                     InformationType.Error
                 );
             }
         }
 
         /// <summary>
-        /// ����ģʽѡ��Ի���
+        /// 导入模式选择对话框
         /// </summary>
         private class ImportModeDialog : Form
         {
@@ -180,7 +180,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.label1.Name = "label1";
                 this.label1.Size = new System.Drawing.Size(82, 15);
                 this.label1.TabIndex = 0;
-                this.label1.Text = "��ѡ����ģʽ��";
+                this.label1.Text = "请选择导入模式：";
                 // 
                 // rbCreateOnly
                 // 
@@ -190,7 +190,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.rbCreateOnly.Size = new System.Drawing.Size(113, 19);
                 this.rbCreateOnly.TabIndex = 1;
                 this.rbCreateOnly.TabStop = true;
-                this.rbCreateOnly.Text = "������������";
+                this.rbCreateOnly.Text = "仅创建新数据";
                 this.rbCreateOnly.UseVisualStyleBackColor = true;
                 this.rbCreateOnly.CheckedChanged += new System.EventHandler(this.rbCreateOnly_CheckedChanged);
                 // 
@@ -202,7 +202,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.rbUpdateOnly.Size = new System.Drawing.Size(137, 19);
                 this.rbUpdateOnly.TabIndex = 2;
                 this.rbUpdateOnly.TabStop = true;
-                this.rbUpdateOnly.Text = "�������Ѵ��ڵ�����";
+                this.rbUpdateOnly.Text = "仅更新已存在的数据";
                 this.rbUpdateOnly.UseVisualStyleBackColor = true;
                 this.rbUpdateOnly.CheckedChanged += new System.EventHandler(this.rbUpdateOnly_CheckedChanged);
                 // 
@@ -214,7 +214,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.rbCreateOrUpdate.Size = new System.Drawing.Size(113, 19);
                 this.rbCreateOrUpdate.TabIndex = 3;
                 this.rbCreateOrUpdate.TabStop = true;
-                this.rbCreateOrUpdate.Text = "�������������";
+                this.rbCreateOrUpdate.Text = "创建或更新数据";
                 this.rbCreateOrUpdate.UseVisualStyleBackColor = true;
                 this.rbCreateOrUpdate.CheckedChanged += new System.EventHandler(this.rbCreateOrUpdate_CheckedChanged);
                 // 
@@ -226,7 +226,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.rbReplace.Size = new System.Drawing.Size(113, 19);
                 this.rbReplace.TabIndex = 4;
                 this.rbReplace.TabStop = true;
-                this.rbReplace.Text = "�滻��������";
+                this.rbReplace.Text = "替换所有数据";
                 this.rbReplace.UseVisualStyleBackColor = true;
                 this.rbReplace.CheckedChanged += new System.EventHandler(this.rbReplace_CheckedChanged);
                 // 
@@ -237,7 +237,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.btnOK.Name = "btnOK";
                 this.btnOK.Size = new System.Drawing.Size(75, 23);
                 this.btnOK.TabIndex = 5;
-                this.btnOK.Text = "ȷ��";
+                this.btnOK.Text = "确定";
                 this.btnOK.UseVisualStyleBackColor = true;
                 // 
                 // btnCancel
@@ -247,7 +247,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.btnCancel.Name = "btnCancel";
                 this.btnCancel.Size = new System.Drawing.Size(75, 23);
                 this.btnCancel.TabIndex = 6;
-                this.btnCancel.Text = "ȡ��";
+                this.btnCancel.Text = "取消";
                 this.btnCancel.UseVisualStyleBackColor = true;
                 // 
                 // ImportModeDialog
@@ -267,7 +267,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win.Controllers
                 this.MinimizeBox = false;
                 this.Name = "ImportModeDialog";
                 this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-                this.Text = "ѡ����ģʽ";
+                this.Text = "选择导入模式";
                 this.ResumeLayout(false);
                 this.PerformLayout();
             }

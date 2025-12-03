@@ -74,48 +74,48 @@ namespace WxyXaf.XpoExcel
             Directory.CreateDirectory(Path.GetDirectoryName(logPath));
             using (StreamWriter writer = new StreamWriter(logPath, true))
             {
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExcelImportExportViewController.OnActivated 开始执行");
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 当前视图类型: {View.GetType().FullName}");
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 当前视图对象类型: {View.ObjectTypeInfo.Type.FullName}");
+                writer.WriteLine($"ExcelImportExportViewController.OnActivated 开始执行");
+                writer.WriteLine($"当前视图类型: {View.GetType().FullName}");
+                writer.WriteLine($"当前视图对象类型: {View.ObjectTypeInfo.Type.FullName}");
 
                 // 获取当前视图的对象类型
                 _objectType = View.ObjectTypeInfo.Type;
 
                 // 检查对象类型是否带有ExcelImportExportAttribute属性
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 开始检查ExcelImportExportAttribute");
+                writer.WriteLine($"开始检查ExcelImportExportAttribute");
                 _excelImportExportAttribute = _objectType.GetCustomAttribute<ExcelImportExportAttribute>();
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExcelImportExportAttribute: {( _excelImportExportAttribute != null ? "找到" : "未找到" )}");
+                writer.WriteLine($"ExcelImportExportAttribute: {( _excelImportExportAttribute != null ? "找到" : "未找到" )}");
 
                 // 检查是否有其他方式可以获取ExcelImportExportAttribute
                 var attributes = _objectType.GetCustomAttributes(true);
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 对象类型的自定义属性数量: {attributes.Length}");
+                writer.WriteLine($"对象类型的自定义属性数量: {attributes.Length}");
                 foreach (var attr in attributes)
                 {
-                    writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 自定义属性: {attr.GetType().FullName}");
+                    writer.WriteLine($"自定义属性: {attr.GetType().FullName}");
                 }
 
                 // 如果带有该属性，则激活动作，否则禁用动作
                 bool hasAttribute = _excelImportExportAttribute != null;
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] hasAttribute: {hasAttribute}");
+                writer.WriteLine($"hasAttribute: {hasAttribute}");
                 
                 // 强制激活动作，不管是否有ExcelImportExportAttribute，用于测试
                 _exportAction.Active["HasExcelImportExportAttribute"] = true;
                 _importAction.Active["HasExcelImportExportAttribute"] = true;
                 
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 导出动作Active状态: {_exportAction.Active}");
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 导入动作Active状态: {_importAction.Active}");
+                writer.WriteLine($"导出动作Active状态: {_exportAction.Active}");
+                writer.WriteLine($"导入动作Active状态: {_importAction.Active}");
 
                 if (hasAttribute)
                 {
                     // 配置动作
-                    writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 激活动作");
+                    writer.WriteLine($"激活动作");
                     ConfigureActions();
                 }
                 else
                 {
-                    writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] 禁用动作，因为没有ExcelImportExportAttribute");
+                    writer.WriteLine($"禁用动作，因为没有ExcelImportExportAttribute");
                 }
-                writer.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ExcelImportExportViewController.OnActivated 执行完成");
+                writer.WriteLine($"ExcelImportExportViewController.OnActivated 执行完成");
             }
         }
 

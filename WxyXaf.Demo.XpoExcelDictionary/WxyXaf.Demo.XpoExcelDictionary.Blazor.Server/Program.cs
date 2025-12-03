@@ -33,49 +33,61 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
                     {
                         var dbFilePath = dataSourceParam.Split('=')[1].Trim();
                         
-                        // ������ݿ��ļ��Ƿ����
+                        Console.WriteLine($"[DB Check] 开始检查数据库文件: {dbFilePath}");
+                        
+                        // 检查数据库文件是否存在
                         if (File.Exists(dbFilePath))
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ������ݿ������: {dbFilePath}");
+                            Console.WriteLine($"[DB Check] 数据库文件已存在，开始检查结构完整性");
                             
-                            // ���Դ����ݿⲢ��������
+                            // 尝试连接数据库并验证完整性
                             try
                             {
                                 using (var connection = new System.Data.SQLite.SQLiteConnection($"Data Source={dbFilePath}"))
                                 {
                                     connection.Open();
                                     
-                                    // ������ݿ�汾���Ƿ����
+                                    // 检查数据库版本是否兼容
                                     using (var command = new System.Data.SQLite.SQLiteCommand(
                                         "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='XPObjectType'", 
                                         connection))
                                     {
                                         var count = Convert.ToInt32(command.ExecuteScalar());
+                                        Console.WriteLine($"[DB Check] XPObjectType 表数量: {count}");
+                                        
                                         if (count == 0)
                                         {
-                                            // ���ݿ�ṹ�����ݣ�ɾ�������ݿ�
-                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ���ݿ�ṹ�����ݣ�ɾ�������ݿ�: {dbFilePath}");
+                                            // 数据库结构不完整，删除重建
+                                            Console.WriteLine($"[DB Check] 数据库结构不完整，删除重建");
                                             connection.Close();
                                             File.Delete(dbFilePath);
-                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] �����ݿ���ɾ��");
+                                            Console.WriteLine($"[DB Check] 旧数据库已删除");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine($"[DB Check] 数据库结构正常");
                                         }
                                     }
                                 }
                             }
                             catch (Exception ex)
                             {
-                                // ����ʧ�ܣ����ݿ�����𻵻򲻼��ݣ�ɾ�������ݿ�
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ���ݿ�����ʧ�ܣ�ɾ�������ݿ�: {dbFilePath}, ����: {ex.Message}");
+                                // 连接失败，数据库文件可能损坏，删除重建
+                                Console.WriteLine($"[DB Check] 数据库连接失败，删除重建: {ex.Message}");
                                 File.Delete(dbFilePath);
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] �����ݿ���ɾ��");
+                                Console.WriteLine($"[DB Check] 损坏的数据库已删除");
                             }
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DB Check] 数据库文件不存在，将自动创建");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ������ݿ������ʱ��������: {ex.Message}");
+                Console.WriteLine($"[DB Check] ������ݿ������ʱ��������: {ex.Message}");
                 // ���Դ��󣬼�������Ӧ�ó���
             }
         }

@@ -23,6 +23,7 @@
     <PackageReference Include="DevExpress.ExpressApp.Blazor" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.CodeAnalysis" Version="25.1.*" />
     <PackageReference Include="DevExpress.ExpressApp.Validation.Blazor" Version="25.1.*" />
+
     
   </ItemGroup>
   <ItemGroup>

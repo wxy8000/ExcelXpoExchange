@@ -69,7 +69,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
                                 // ������ݿ��ļ��Ƿ����
                                 if (System.IO.File.Exists(dbFilePath))
                                 {
-                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ������ݿ������: {dbFilePath}");
+                                    System.Diagnostics.Debug.WriteLine($"������ݿ������: {dbFilePath}");
                                     
                                     // ���Դ����ݿⲢ��������
                                     try
@@ -87,10 +87,10 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
                                                 if (count == 0)
                                                 {
                                                     // ���ݿ�ṹ�����ݣ�ɾ�������ݿ�
-                                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ���ݿ�ṹ�����ݣ�ɾ�������ݿ�: {dbFilePath}");
+                                                    System.Diagnostics.Debug.WriteLine($"���ݿ�ṹ�����ݣ�ɾ�������ݿ�: {dbFilePath}");
                                                     sqliteConnection.Close();
                                                     System.IO.File.Delete(dbFilePath);
-                                                    System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] �����ݿ���ɾ��");
+                                                    System.Diagnostics.Debug.WriteLine($"�����ݿ���ɾ��");
                                                 }
                                             }
                                         }
@@ -98,9 +98,9 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Blazor.Server
                                     catch (Exception ex)
                                     {
                                         // ����ʧ�ܣ����ݿ�����𻵻򲻼��ݣ�ɾ�������ݿ�
-                                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ���ݿ�����ʧ�ܣ�ɾ�������ݿ�: {dbFilePath}, ����: {ex.Message}");
+                                        System.Diagnostics.Debug.WriteLine($"���ݿ�����ʧ�ܣ�ɾ�������ݿ�: {dbFilePath}, ����: {ex.Message}");
                                         System.IO.File.Delete(dbFilePath);
-                                        System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] �����ݿ���ɾ��");
+                                        System.Diagnostics.Debug.WriteLine($"�����ݿ���ɾ��");
                                     }
                                 }
                             }

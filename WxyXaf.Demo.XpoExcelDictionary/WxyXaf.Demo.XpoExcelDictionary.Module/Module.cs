@@ -27,6 +27,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Module
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Objects.BusinessClassLibraryCustomizationModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.ConditionalAppearance.ConditionalAppearanceModule));
             RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.Validation.ValidationModule));
+            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.TreeListEditors.TreeListEditorsModuleBase));
             RequiredModuleTypes.Add(typeof(WxyXaf.XpoExcel.WxyXafXpoExcelModule));
             RequiredModuleTypes.Add(typeof(WxyXaf.DataDictionaries.DataDictionariesModule));
         }

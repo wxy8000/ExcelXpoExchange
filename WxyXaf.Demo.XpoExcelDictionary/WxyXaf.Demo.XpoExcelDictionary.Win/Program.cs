@@ -44,7 +44,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win
                         // ������ݿ��ļ��Ƿ����
                         if (File.Exists(dbFilePath))
                         {
-                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ������ݿ������: {dbFilePath}");
+                            System.Diagnostics.Debug.WriteLine($"������ݿ������: {dbFilePath}");
                             
                             // ���Դ����ݿⲢ��������
                             // �������Ǽ򻯴�����ֱ�ӳ������ӣ����ʧ����ɾ�������ݿ�
@@ -63,10 +63,10 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win
                                         if (count == 0)
                                         {
                                             // ���ݿ�ṹ�����ݣ�ɾ�������ݿ�
-                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ���ݿ�ṹ�����ݣ�ɾ�������ݿ�: {dbFilePath}");
+                                            System.Diagnostics.Debug.WriteLine($"���ݿ�ṹ�����ݣ�ɾ�������ݿ�: {dbFilePath}");
                                             connection.Close();
                                             File.Delete(dbFilePath);
-                                            System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] �����ݿ���ɾ��");
+                                            System.Diagnostics.Debug.WriteLine($"�����ݿ���ɾ��");
                                         }
                                     }
                                 }
@@ -74,9 +74,9 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win
                             catch (Exception ex)
                             {
                                 // ����ʧ�ܣ����ݿ�����𻵻򲻼��ݣ�ɾ�������ݿ�
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ���ݿ�����ʧ�ܣ�ɾ�������ݿ�: {dbFilePath}, ����: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"���ݿ�����ʧ�ܣ�ɾ�������ݿ�: {dbFilePath}, ����: {ex.Message}");
                                 File.Delete(dbFilePath);
-                                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] �����ݿ���ɾ��");
+                                System.Diagnostics.Debug.WriteLine($"�����ݿ���ɾ��");
                             }
                         }
                     }
@@ -84,7 +84,7 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[{DateTime.Now:HH:mm:ss.fff}] ������ݿ������ʱ��������: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"������ݿ������ʱ��������: {ex.Message}");
                 // ���Դ��󣬼�������Ӧ�ó���
             }
         }

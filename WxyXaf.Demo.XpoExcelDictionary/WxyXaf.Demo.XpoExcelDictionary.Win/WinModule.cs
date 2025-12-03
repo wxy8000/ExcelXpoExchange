@@ -20,6 +20,9 @@ namespace WxyXaf.Demo.XpoExcelDictionary.Win
             DevExpress.ExpressApp.Editors.FormattingProvider.UseMaskSettings = true;
             // ��ʽע��WinFormsƽ̨�ض��Ŀ�����
             AdditionalControllerTypes.Add(typeof(WxyXaf.Demo.XpoExcelDictionary.Win.Controllers.WinExcelImportExportViewController));
+            
+            // 注册WinForms特定的TreeListEditors模块
+            RequiredModuleTypes.Add(typeof(DevExpress.ExpressApp.TreeListEditors.Win.TreeListEditorsWindowsFormsModule));
         }
         public override IEnumerable<ModuleUpdater> GetModuleUpdaters(IObjectSpace objectSpace, Version versionFromDB)
         {
